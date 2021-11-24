@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+        <id>BBCoders.Commons.QueryGenerator</id>
+        <version>1.0.2</version>
+        <description>Automation tool to generate models and services for ef core queries.</description>
+        <authors>satheesh</authors>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <dependencies>
+          <group targetFramework="netstandard2.1" />
+        </dependencies>
+  </metadata>
+  <files>
+     <file src="bin\Release\netstandard2.1\BBCoders.Commons.QueryGenerator.dll" target="lib\netstandard2.1" />
+  </files>
+</package>
