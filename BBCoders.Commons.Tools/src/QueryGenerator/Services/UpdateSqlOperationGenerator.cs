@@ -1,9 +1,10 @@
 using System.Linq;
+using BBCoders.Commons.QueryConfiguration;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class UpdateSqlOperationGenerator : SqlOperationGenerator
     {
@@ -31,14 +32,14 @@ namespace BBCoders.Commons.QueryGenerator
             builder.Append(WhereClause(_table.Name, keyColumns, keyColumns, true));
         }
 
-        public override void GenerateModel(IndentedStringBuilder builder)
+        public override void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder)
         {
             var updateModelName = GetEntityName() + _modelSuffix;
             var properties = _table.Columns.Select(x => x.PropertyMappings.First().Property);
             GenerateModel(builder, updateModelName, properties);
         }
 
-        public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public override void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder, string connectionString)
         {
             var tableName = GetEntityName();
             var updateModelName = tableName + "UpdateModel";
@@ -55,7 +56,7 @@ namespace BBCoders.Commons.QueryGenerator
                     builder.AppendLine("await connection.OpenAsync();");
                     builder.Append("string sql = @\"");
                     GenerateSql(builder);
-                    builder.Append("\";");
+                    builder.AppendLine("\";");
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in properties.Keys)
                     {

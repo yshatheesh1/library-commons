@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 
-namespace BBCoders.Commons.QueryGenerator.Models
+namespace BBCoders.Commons.Tools.QueryGenerator.Models
 {
-     public class CustomSqlModel
+     public class SqlModel
     {
         public string MethodName { get; set; }
         public string Sql { get; set; }

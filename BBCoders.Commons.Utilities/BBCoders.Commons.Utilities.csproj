@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NuspecFile>BBCoders.Commons.Utilities.nuspec</NuspecFile> 
+  </PropertyGroup>
+
+</Project>

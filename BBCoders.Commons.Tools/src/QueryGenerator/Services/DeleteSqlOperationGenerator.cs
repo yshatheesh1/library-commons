@@ -1,9 +1,10 @@
 using System.Linq;
+using BBCoders.Commons.QueryConfiguration;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class DeleteSqlOperationGenerator : SqlOperationGenerator
     {
@@ -21,14 +22,14 @@ namespace BBCoders.Commons.QueryGenerator
             builder.Append(WhereClause(_table.Name, columns, columns, true));
         }
 
-        public override void GenerateModel(IndentedStringBuilder builder)
+        public override void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder)
         {
             var deleteModelName =  GetEntityName() + _modelSuffix;
             var properties = _table.PrimaryKey.Columns.Select(x => x.PropertyMappings.First().Property);
             GenerateModel(builder, deleteModelName, properties);
         }
 
-        public override void GenerateMethod(IndentedStringBuilder builder,  string connectionString)
+        public override void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder,  string connectionString)
         {
             var modelName = GetEntityName();
             var deleteModelName = modelName + _modelSuffix;
@@ -46,7 +47,7 @@ namespace BBCoders.Commons.QueryGenerator
                     builder.AppendLine("await connection.OpenAsync();");
                     builder.Append("string sql = @\"");
                     GenerateSql(builder);
-                    builder.Append("\";");
+                    builder.AppendLine("\";");
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in primaryKeyProperties.Keys)
                     {

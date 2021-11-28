@@ -1,0 +1,1 @@
+# contains base classes to generate c# classes for ef core queries at design time

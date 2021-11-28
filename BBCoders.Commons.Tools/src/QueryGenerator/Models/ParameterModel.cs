@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace BBCoders.Commons.QueryGenerator.Models
+namespace BBCoders.Commons.Tools.QueryGenerator.Models
 {
     public class ParameterModel
     {

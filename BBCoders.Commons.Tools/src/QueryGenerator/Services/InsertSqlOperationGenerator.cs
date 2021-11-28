@@ -1,9 +1,10 @@
 using System.Linq;
+using BBCoders.Commons.QueryConfiguration;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class InsertSqlOperationGenerator : SqlOperationGenerator
     {
@@ -28,7 +29,7 @@ namespace BBCoders.Commons.QueryGenerator
             builder.Append("SELECT LAST_INSERT_ID()");
         }
 
-        public override void GenerateModel(IndentedStringBuilder builder)
+        public override void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder)
         {
             var insertModelName = GetEntityName() + _modelSuffix;
             var columns = GetMappings().Where(x => !x.isAutoIncrement()).Select(x => x.Name);
@@ -36,7 +37,7 @@ namespace BBCoders.Commons.QueryGenerator
             GenerateModel(builder, insertModelName, properties);
         }
 
-        public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public override void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder, string connectionString)
         {
             var modelName = GetEntityName();
             var insertModelName = modelName + _modelSuffix;
@@ -59,7 +60,7 @@ namespace BBCoders.Commons.QueryGenerator
                     builder.AppendLine("await connection.OpenAsync();");
                     builder.Append("string sql = @\"");
                     GenerateSql(builder);
-                    builder.Append("\";");
+                    builder.AppendLine("\";");
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in properties.Keys)
                     {

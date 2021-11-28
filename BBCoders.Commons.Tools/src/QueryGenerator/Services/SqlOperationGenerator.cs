@@ -3,20 +3,15 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using BBCoders.Commons.QueryGenerator.Models;
+using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public interface ICodeGenerator
-    {
-        void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
-        void GenerateModel(IndentedStringBuilder builder);
-        void GenerateMethod(IndentedStringBuilder builder, string connectionString);
-    }
-    public abstract class SqlOperationGenerator : ICodeGenerator
+    public abstract class SqlOperationGenerator : ISqlOperationGenerator
     {
         protected ISqlGenerationHelper _sqlGenerationHelper;
         protected ITable _table;
@@ -27,8 +22,8 @@ namespace BBCoders.Commons.QueryGenerator
         }
 
         public abstract void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
-        public abstract void GenerateModel(IndentedStringBuilder builder);
-        public abstract void GenerateMethod(IndentedStringBuilder builder, string connectionString);
+        public abstract void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder);
+        public abstract void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder, string connectionString);
 
         protected void GenerateModel(IndentedStringBuilder builder, string className, IEnumerable<IProperty> properties)
         {

@@ -1,21 +1,22 @@
 using System.Globalization;
 using System.Linq;
-using BBCoders.Commons.QueryGenerator.Models;
+using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
-namespace BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public class CustomSqlOperationGenerator : ICodeGenerator
+    public class CustomSqlOperationGenerator : ISqlOperationGenerator
     {
         private const string _modelSuffix = "SelectModel";
-        private readonly CustomSqlModel customSqlModel;
+        private readonly SqlModel customSqlModel;
 
-        public CustomSqlOperationGenerator(CustomSqlModel customSqlModel)
+        public CustomSqlOperationGenerator(SqlModel customSqlModel)
         {
             this.customSqlModel = customSqlModel;
         }
 
-        public void GenerateModel(IndentedStringBuilder builder)
+        public void GenerateModel(QueryOptions queryOptions, IndentedStringBuilder builder)
         {
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";
@@ -26,8 +27,11 @@ namespace BBCoders.Commons.QueryGenerator
             {
                 foreach (var parameter in customSqlModel.Bindings)
                 {
-                    builder.Append($"public {parameter.Type} {parameter.Value}")
-                            .AppendLine(" { get; set; }");
+                    if (!parameter.hasDefault)
+                    {
+                        builder.Append($"public {parameter.Type} {parameter.Value}")
+                                .AppendLine(" { get; set; }");
+                    }
                 }
             }
             builder.AppendLine("}");
@@ -44,7 +48,7 @@ namespace BBCoders.Commons.QueryGenerator
             }
             builder.AppendLine("}");
         }
-        public void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public void GenerateMethod(QueryOptions queryOptions, IndentedStringBuilder builder, string connectionString)
         {
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";
@@ -61,11 +65,18 @@ namespace BBCoders.Commons.QueryGenerator
                     builder.AppendLine("await connection.OpenAsync();");
                     builder.Append("string sql = @\"");
                     GenerateSql(builder);
-                    builder.Append("\";");
+                    builder.AppendLine("\";");
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in customSqlModel.Bindings)
                     {
-                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {requestModelName}.{property.Value});");
+                        if (property.hasDefault)
+                        {
+                            builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {property.DefaultValue});");
+                        }
+                        else
+                        {
+                            builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {requestModelName}.{property.Value});");
+                        }
                     }
                     builder.AppendLine($"{responseModelName} result = null;");
                     builder.AppendLine("var reader = await cmd.ExecuteReaderAsync();");

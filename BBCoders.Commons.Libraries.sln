@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.QueryGenerator", "BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj", "{FA2E3DD8-3A49-4805-8135-A895BCF53306}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.Tools", "BBCoders.Commons.Tools\BBCoders.Commons.Tools.csproj", "{FA2E3DD8-3A49-4805-8135-A895BCF53306}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.Utilities", "BBCoders.Commons.Utilities\BBCoders.Commons.Utilities.csproj", "{ADE54C23-2330-4712-A6A5-8443855A47F7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.QueryConfiguration", "BBCoders.Commons.QueryConfiguration\BBCoders.Commons.QueryConfiguration.csproj", "{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +22,13 @@ Global
 		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
