@@ -16,7 +16,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             this.customSqlModel = customSqlModel;
         }
 
-        public void GenerateModel(QueryOptions queryOptions, IndentedStringBuilder builder)
+        public void GenerateModel(IndentedStringBuilder builder)
         {
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";
@@ -48,7 +48,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             }
             builder.AppendLine("}");
         }
-        public void GenerateMethod(QueryOptions queryOptions, IndentedStringBuilder builder, string connectionString)
+        public void GenerateMethod(IndentedStringBuilder builder, string connectionString)
         {
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";

@@ -4,7 +4,7 @@ using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.QueryGenerator.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
-namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class DefaultCodeGenerator : ICodeGenerator
     {
@@ -25,8 +25,8 @@ namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
             var servicePath = "";
             if (_queryOptions.Language.Equals("CSharp", System.StringComparison.OrdinalIgnoreCase))
             {
-                modelPath = Path.Combine(_queryOptions.OutputDirectory, "Models.cs");
-                servicePath = Path.Combine(_queryOptions.OutputDirectory, "DataServices.cs");
+                servicePath = Path.Combine(_queryOptions.OutputDirectory, _queryOptions.FileName + "." + _queryOptions.FileExtension);
+                modelPath = Path.Combine(_queryOptions.OutputDirectory, (_queryOptions.ModelFileName ?? _queryOptions.FileName + "Models") + "." + _queryOptions.FileExtension);
                 CreateCSharpModel(modelBuilder);
                 CreateCSharpService(serviceBuilder);
 
@@ -43,7 +43,7 @@ namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
         {
             if (!Directory.Exists(_queryOptions.OutputDirectory))
             {
-                 Directory.CreateDirectory(_queryOptions.OutputDirectory);
+                Directory.CreateDirectory(_queryOptions.OutputDirectory);
             }
             Directory.CreateDirectory(_queryOptions.OutputDirectory);
         }
@@ -77,7 +77,7 @@ namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
         {
             foreach (var generator in _operationGenerators)
             {
-                generator.GenerateModel(_queryOptions, builder);
+                generator.GenerateModel(builder);
             }
         }
 
@@ -86,7 +86,6 @@ namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
         {
             GenerateComment(builder);
             builder.AppendLine("using System;");
-            builder.AppendLine("using System.Data;");
             builder.AppendLine("using System.Threading.Tasks;");
             builder.AppendLine("using MySqlConnector;");
             builder.AppendLine();
@@ -103,7 +102,7 @@ namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
                     builder.AppendLine("{ this._connectionString = connectionString; }");
                     foreach (var generator in _operationGenerators)
                     {
-                        generator.GenerateMethod(_queryOptions, builder, "_connectionString");
+                        generator.GenerateMethod(builder, "_connectionString");
                     }
                 }
                 builder.AppendLine("}");

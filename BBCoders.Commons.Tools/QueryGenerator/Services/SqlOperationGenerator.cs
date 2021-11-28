@@ -22,8 +22,8 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
         }
 
         public abstract void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
-        public abstract void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder);
-        public abstract void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder, string connectionString);
+        public abstract void GenerateModel(IndentedStringBuilder builder);
+        public abstract void GenerateMethod(IndentedStringBuilder builder, string connectionString);
 
         protected void GenerateModel(IndentedStringBuilder builder, string className, IEnumerable<IProperty> properties)
         {
@@ -99,17 +99,6 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             return _sqlGenerationHelper.DelimitIdentifier(tableName) + "." +
                _sqlGenerationHelper.DelimitIdentifier(column);
         }
-
-        // protected string DelimitColumns(string tableName, bool alias = false, params string[] columns)
-        // {
-        //     var tableAlias = tableName.Substring(0, 1).ToLower();
-        //     var placeholders = columns.Select(x => alias ?
-        //             _sqlGenerationHelper.DelimitIdentifier(tableAlias) + "." +
-        //             _sqlGenerationHelper.DelimitIdentifier(x) :
-        //             _sqlGenerationHelper.DelimitIdentifier(x)
-        //     );
-        //     return string.Join(",", placeholders);
-        // }
 
         protected string BuildParamType(ParameterModel param)
         {

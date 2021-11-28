@@ -25,13 +25,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             builder.Append(WhereClause(_table.Name, columns, columns, true));
         }
 
-        public override void GenerateModel(QueryOptions queryOptions,  IndentedStringBuilder builder)
+        public override void GenerateModel(IndentedStringBuilder builder)
         {
             var selectModelName = GetEntityName() + _modelSuffix;
             var properties = _table.Columns.Select(x => x.PropertyMappings.First().Property);
             GenerateModel(builder, selectModelName, properties);
         }
-        public override void GenerateMethod(QueryOptions queryOptions,  IndentedStringBuilder builder, string connectionString)
+        public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
         {
             var tableName = GetEntityName();
             var modelName = tableName + "SelectModel";

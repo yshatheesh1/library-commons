@@ -1,4 +1,4 @@
-namespace BBCoders.Commons.Tools.src.QueryGenerator.Services
+namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public interface ICodeGenerator
     {

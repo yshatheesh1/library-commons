@@ -9,6 +9,9 @@ namespace BBCoders.Commons.Tools
     {
         private static int Main(string[] args)
         {
+            Reporter.IsVerbose = true;
+            Reporter.NoColor = false;
+            Reporter.PrefixOutput = false;
             var app = new CommandLineApplication(throwOnUnexpectedArg: false)
             {
                 Name = "dotnet bbcoders generate-query",
@@ -29,7 +32,7 @@ namespace BBCoders.Commons.Tools
                generate.OnExecute(() =>
                {
                    var _noBuild = generate.Option("--no-build", "Don't build the project. Intended to be used when the build is up-to-date.", CommandOptionType.SingleValue);
-                   var project = Project.FromFile(System.IO.Directory.GetCurrentDirectory());
+                   var project = Project.FromFile();
                    if (!_noBuild.HasValue())
                    {
                        Reporter.WriteInformation("Build Started...");

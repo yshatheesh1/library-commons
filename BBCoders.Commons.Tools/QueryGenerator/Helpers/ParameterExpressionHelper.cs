@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
-using MySql.Data.MySqlClient;
 
-namespace BBCoders.Commons.Tools.src.QueryGenerator.Helpers
+namespace BBCoders.Commons.Tools.QueryGenerator.Helpers
 {
     public class ParameterExpressionHelper
     {

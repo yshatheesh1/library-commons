@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BBCoders.Commons.Utilities;
+using Microsoft.Extensions.CommandLineUtils;
 
 namespace BBCoders.Commons.Tools
 {
@@ -20,7 +21,7 @@ namespace BBCoders.Commons.Tools
             _configuration = configuration;
             _runtime = runtime;
             ProjectName = Path.GetFileName(file);
-        } 
+        }
         public string ProjectName { get; }
         public string AssemblyName { get; set; }
         public string Language { get; set; }
@@ -37,13 +38,13 @@ namespace BBCoders.Commons.Tools
         public string TargetPlatformIdentifier { get; set; }
 
         public static Project FromFile(
-            string file,
+            string file = null,
             string buildExtensionsDir = null,
             string framework = null,
             string configuration = null,
             string runtime = null)
         {
-
+            file = ResolveProjects(file);
             if (buildExtensionsDir == null)
             {
                 buildExtensionsDir = Path.Combine(Path.GetDirectoryName(file)!, "obj");
@@ -59,7 +60,7 @@ namespace BBCoders.Commons.Tools
             using (var output = File.OpenWrite(efTargetsPath))
             {
                 // NB: Copy always in case it changes
-                Reporter.WriteVerbose("Writing file - " +  efTargetsPath);
+                Reporter.WriteVerbose("Writing file - " + efTargetsPath);
                 input.CopyTo(output);
             }
 
@@ -96,7 +97,6 @@ namespace BBCoders.Commons.Tools
                 {
                     args.Add(file);
                 }
-
                 var exitCode = Exe.Run("dotnet", args);
                 if (exitCode != 0)
                 {
@@ -134,6 +134,28 @@ namespace BBCoders.Commons.Tools
                 TargetPlatformIdentifier = metadata["TargetPlatformIdentifier"]
             };
         }
+        private static string ResolveProjects(string path = null)
+        {
+            if (path == null)
+            {
+                path = Directory.GetCurrentDirectory();
+            }
+            var projects = Directory.EnumerateFiles(path, "*.*proj", SearchOption.TopDirectoryOnly)
+                .Where(f => !string.Equals(Path.GetExtension(f), ".xproj", StringComparison.OrdinalIgnoreCase))
+                .Take(2).ToList();
+
+            if (projects.Count > 1)
+            {
+                throw new Exception("Multiple projects files exists in the directory");
+            }
+
+            if (projects.Count == 0)
+            {
+                throw new Exception("No projects file exists in the directory");
+            }
+            return projects[0];
+        } 
+
 
         public void Build()
         {

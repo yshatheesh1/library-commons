@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
         <id>BBCoders.Commons.QueryConfiguration</id>
-        <version>0.0.6</version>
+        <version>0.0.8</version>
         <description>Base class to create design time queries.</description>
         <authors>satheesh</authors>
         <owners>satheesh</owners>

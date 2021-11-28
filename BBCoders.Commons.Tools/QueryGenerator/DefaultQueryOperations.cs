@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
@@ -20,10 +19,7 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using BBCoders.Commons.Tools.src.QueryGenerator.Helpers;
-using BBCoders.Commons.Tools.src.QueryGenerator.Services;
-using System.Diagnostics;
-using System.Threading;
+using BBCoders.Commons.Tools.QueryGenerator.Helpers;
 
 namespace BBCoders.Commons.Tools.QueryGenerator
 {
@@ -81,7 +77,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator
             }
             codeGenerators.ForEach(x => x.Generate());
         }
-        public override void Add<T>(string selectMethodName, string insertMethodName, string updateMethodName, string deleteMethodName)
+        public override void Add<T>()
         {
             var table = model?.Tables.FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
             if (table == null)

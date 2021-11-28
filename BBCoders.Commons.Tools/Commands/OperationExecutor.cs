@@ -17,7 +17,6 @@ namespace BBCoders.Commons.Tools
         private readonly string[] _designArgs;
         private readonly IOperationReporter _reporter;
         private Assembly _assembly;
-        private Assembly _startupAssembly;
 
         public OperationExecutor(Project project)
         {
@@ -30,9 +29,7 @@ namespace BBCoders.Commons.Tools
 
             var targetDir = Path.GetFullPath(Path.Combine(project.ProjectDir, project.OutputPath));
             var targetPath = Path.Combine(targetDir, project.TargetFileName);
-            var startupTargetPath = Path.Combine(targetDir, project.TargetFileName);
             _targetPath = targetPath;
-            _startupTargetPath = startupTargetPath;
             _projectDir = project.ProjectDir;
             _rootNamespace = project.RootNamespace;
         }
@@ -40,16 +37,12 @@ namespace BBCoders.Commons.Tools
         private Assembly Assembly =>
          _assembly ??= Assembly.LoadFrom(_targetPath);
 
-        private Assembly StartupAssembly
-            => _startupAssembly
-                ??= Assembly.LoadFrom(_startupTargetPath);
-
         public void ExecuteQueryOperations()
         {
             new DefaultQueryOperations(
                         _reporter,
                         Assembly,
-                        StartupAssembly,
+                        Assembly,
                         _projectDir,
                         _rootNamespace,
                         _designArgs).Execute();

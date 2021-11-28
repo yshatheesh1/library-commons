@@ -55,12 +55,8 @@ namespace BBCoders.Commons.QueryConfiguration
         /// <summary>
         /// Add CRUD operations for given entity
         /// </summary>
-        /// /// <param name="selectMethodName">select query method name</param>
-        /// <param name="insertMethodName">insert query method name</param>
-        /// <param name="updateMethodName">update query method name</param>
-        /// <param name="deleteMethodName">update query method name</param>
         /// <typeparam name="T">entity type</typeparam>
-        public abstract void Add<T>(string selectMethodName, string insertMethodName, string updateMethodName, string deleteMethodName);
+        public abstract void Add<T>();
 
         /// <summary>
         /// Add Custom query operation
