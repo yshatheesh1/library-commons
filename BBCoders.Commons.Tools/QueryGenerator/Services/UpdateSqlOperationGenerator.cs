@@ -1,16 +1,15 @@
 using System.Linq;
-using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class UpdateSqlOperationGenerator : SqlOperationGenerator
     {
         private const string _modelSuffix = "UpdateModel";
-        public UpdateSqlOperationGenerator(ISqlGenerationHelper sqlGenerationHelper, ITable operation) :
-        base(sqlGenerationHelper, operation)
+        public UpdateSqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable operation) :
+        base(dependencies, operation)
         { }
 
         public override void GenerateSql(IndentedStringBuilder builder)
@@ -18,6 +17,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var parameters = GetMappings();
             var columns = parameters.Where(x => !x.isPrimaryKey());
             var keyColumns = parameters.Where(x => x.isPrimaryKey()).Select(x => x.Name).ToArray();
+            var keyColumnMappings = keyColumns.Select(x => "@" + x).ToArray();
             var setColumn = new string[columns.Count()];
             var setValue = new string[columns.Count()];
             for (var i = 0; i < columns.Count(); i++)
@@ -25,11 +25,11 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                 var column = columns.ElementAt(i);
                 var delimitColumn = DelimitColumn(_table.Name, column.Name, true);
                 setColumn[i] = column.Name;
-                setValue[i] = column.hasDefaultValue() ? $"If({column.Name} IS NULL,DEFAULT({delimitColumn}), {column.Name})" : column.Name;
+                setValue[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({delimitColumn}), @{column.Name})" : $"@{column.Name}";
             }
             builder.AppendLine($"UPDATE {DelimitTable(_table.Name, _table.Schema, true)}");
             builder.AppendLine(SetClause(_table.Name, setColumn, setValue, true));
-            builder.Append(WhereClause(_table.Name, keyColumns, keyColumns, true));
+            builder.Append(WhereClause(_table.Name, keyColumns, keyColumnMappings, true));
         }
 
         public override void GenerateModel(IndentedStringBuilder builder)

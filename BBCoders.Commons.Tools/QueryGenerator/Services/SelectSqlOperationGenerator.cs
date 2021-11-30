@@ -1,16 +1,15 @@
 using System.Linq;
-using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
     public class SelectSqlOperationGenerator : SqlOperationGenerator
     {
         private const string _modelSuffix = "SelectModel";
-        public SelectSqlOperationGenerator(ISqlGenerationHelper sqlGenerationHelper, ITable operation) :
-        base(sqlGenerationHelper, operation)
+        public SelectSqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable operation) :
+        base(dependencies, operation)
         { }
 
         public override void GenerateSql(IndentedStringBuilder builder)
@@ -18,11 +17,12 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var parameters = GetMappings();
             var keyColumns = parameters.Where(x => x.isPrimaryKey());
             var columns = keyColumns.Select(x => x.Name).ToArray();
+            var columnMappings = columns.Select(x => "@" + x).ToArray();
             var selectColumns = parameters.Select(x => DelimitColumn(_table.Name, x.Name, true));
             builder.AppendLine($"SELECT {string.Join(",", selectColumns)} ");
             builder.Append("FROM ");
             builder.AppendLine(DelimitTable(_table.Name, _table.Schema, true));
-            builder.Append(WhereClause(_table.Name, columns, columns, true));
+            builder.Append(WhereClause(_table.Name, columns, columnMappings, true));
         }
 
         public override void GenerateModel(IndentedStringBuilder builder)
@@ -37,7 +37,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var modelName = tableName + "SelectModel";
             var properties = _table.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
             var primaryKeyProperties = _table.PrimaryKey.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-            var inputs = string.Join(", ", primaryKeyProperties.Keys.Select(x => getTypeName(x.ClrType) + " " + x.Name));
+            var inputs = string.Join(", ", primaryKeyProperties.Keys.Select(x => getTypeName(x) + " " + x.Name));
             builder.AppendLine($"public async Task<{modelName}> Select{tableName}({inputs})");
             builder.AppendLine("{");
             using (builder.Indent())
@@ -65,7 +65,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                         builder.AppendLine($"result = new {modelName}();");
                         foreach (var property in properties.Keys)
                         {
-                            builder.AppendLine($"result.{property.Name} = ({getTypeName(property.ClrType)})reader[\"{properties[property].Name}\"];");
+                            builder.AppendLine($"result.{property.Name} = ({getTypeName(property)})reader[\"{properties[property].Name}\"];");
                         }
                     }
                     builder.AppendLine("}");

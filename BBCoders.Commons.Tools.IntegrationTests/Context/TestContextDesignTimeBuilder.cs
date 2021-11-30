@@ -7,10 +7,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
 {
     public class TestContextDesignTimeBuilder : IDesignTimeDbContextFactory<TestContext>
     {
+        public static string ConnectionString = "Server=localhost;port=3306;database=usermanagement;uid=usermanagement_test;pwd=usermanagement_test;";
         public TestContext CreateDbContext(string[] args)
-        {
-            var connectionString = "Server=localhost;port=3306;database=usermanagement;uid=usermanagement_test;pwd=usermanagement_test;";
-            var builder = new DbContextOptionsBuilder<TestContext>().UseMySQL(connectionString);
+        { 
+            var builder = new DbContextOptionsBuilder<TestContext>().UseMySQL(ConnectionString);
             var testContext = new TestContext(builder.Options);
             return testContext;
         }

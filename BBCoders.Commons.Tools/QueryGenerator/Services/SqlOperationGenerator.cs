@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Helpers;
 using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -14,10 +15,12 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
     public abstract class SqlOperationGenerator : ISqlOperationGenerator
     {
         protected ISqlGenerationHelper _sqlGenerationHelper;
+        protected IRelationalTypeMappingSource _relationalTypeMappingSource;
         protected ITable _table;
-        public SqlOperationGenerator(ISqlGenerationHelper sqlGenerationHelper, ITable procedureOperation)
+        public SqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable procedureOperation)
         {
-            _sqlGenerationHelper = sqlGenerationHelper;
+            _sqlGenerationHelper = dependencies.sqlGenerationHelper;
+            _relationalTypeMappingSource = dependencies.relationalTypeMappingSource;
             this._table = procedureOperation;
         }
 
@@ -33,7 +36,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             {
                 foreach (var property in properties)
                 {
-                    builder.Append($"public {getTypeName(property.ClrType)} {property.Name}")
+                    builder.Append($"public {getTypeName(property)} {property.Name}")
                             .AppendLine(" { get; set; }");
                 }
             }
@@ -113,6 +116,17 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                 stringBuilder.AppendFormat("( {0}, {1} ) ", param.Precision.Value, param.Scale.Value);
             }
             return stringBuilder.ToString();
+        }
+
+        protected string getTypeName(IProperty property)
+        {
+            var type = _relationalTypeMappingSource.FindMapping(property);
+            if (type.DbType.HasValue)
+            {
+                var suffix = property.IsNullable ? "?" : "";
+                return SqlMapperHelper.getClrType(type.DbType.Value).Name + suffix;
+            }
+            return getTypeName(type.ClrType);
         }
 
         protected string getTypeName(Type clrType)

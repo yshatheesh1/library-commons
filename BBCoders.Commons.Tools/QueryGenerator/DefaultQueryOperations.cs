@@ -31,6 +31,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator
         private ISqlGenerationHelper sqlGenerationHelper;
         private List<ICodeGenerator> codeGenerators = new List<ICodeGenerator>();
         private List<ISqlOperationGenerator> operationGenerators;
+        private IRelationalTypeMappingSource relationalTypeMappingSource;
         private IOperationReporter _reporter;
         public DefaultQueryOperations([NotNull] IOperationReporter reporter, [NotNull] Assembly assembly, [NotNull] Assembly startupAssembly, [NotNull] string projectDir, [NotNull] string rootNamespace, [NotNull] string[] designArgs) :
          base(assembly, startupAssembly, projectDir, rootNamespace, designArgs)
@@ -58,6 +59,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                     var services = _servicesBuilder.Build(context);
                     using (var scope = services.CreateScope())
                     {
+                        relationalTypeMappingSource = scope.ServiceProvider.GetService<IRelationalTypeMappingSource>();
                         sqlGenerationHelper = scope.ServiceProvider.GetService<ISqlGenerationHelper>();
                         var migrationsScaffolderDependencies = scope.ServiceProvider.GetService<MigrationsScaffolderDependencies>();
                         model = migrationsScaffolderDependencies.Model.GetRelationalModel();
@@ -86,10 +88,11 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                 Reporter.WriteError(error);
                 throw new Exception(error);
             }
-            operationGenerators.Add(new SelectSqlOperationGenerator(sqlGenerationHelper, table));
-            operationGenerators.Add(new InsertSqlOperationGenerator(sqlGenerationHelper, table));
-            operationGenerators.Add(new UpdateSqlOperationGenerator(sqlGenerationHelper, table));
-            operationGenerators.Add(new DeleteSqlOperationGenerator(sqlGenerationHelper, table));
+            var dependencies = new SqlOperationGeneratorDependencies(sqlGenerationHelper, relationalTypeMappingSource);
+            operationGenerators.Add(new SelectSqlOperationGenerator(dependencies, table));
+            operationGenerators.Add(new InsertSqlOperationGenerator(dependencies, table));
+            operationGenerators.Add(new UpdateSqlOperationGenerator(dependencies, table));
+            operationGenerators.Add(new DeleteSqlOperationGenerator(dependencies, table));
         }
 
         public override void Add<T>(string name, List<ParameterExpression> inputParameters, Expression<T> expression)
@@ -118,10 +121,11 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                         var selectExpression = (SelectExpression)selectExpressionInfo.GetValue(relationalCommandCache);
                         foreach (var projection in selectExpression.Projection.GroupBy(x => x.Alias).Select(x => new { Key = x.Key, Value = x.First() }))
                         {
+                            var relMapping = relationalTypeMappingSource.GetMapping(projection.Value.Type);
                             var sqlProjection = new SqlProjection()
                             {
                                 Name = projection.Key,
-                                Type = projection.Value.Type.Name,
+                                Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
                             };
                             customSqlModel.Projections.Add(sqlProjection);
                         }
@@ -132,15 +136,25 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                 {
                     var parameter = command.Parameters[i];
                     var bindingParameter = sortedParameters.Count() > i ? sortedParameters[i] : null;
-                    var sqlBinding = new SqlBinding()
+                    if (bindingParameter == null)
                     {
-                        Name = parameter.ParameterName,
-                        Type = bindingParameter?.Type.Name,
-                        Value = bindingParameter?.Name,
-                        hasDefault = bindingParameter == null,
-                        DefaultValue = parameter.Value
-                    };
-                    customSqlModel.Bindings.Add(sqlBinding);
+                        customSqlModel.Bindings.Add(new SqlBinding()
+                        {
+                            Name = parameter.ParameterName,
+                            hasDefault = true,
+                            DefaultValue = parameter.Value
+                        });
+                    }
+                    else
+                    {
+                        var relMapping = relationalTypeMappingSource.GetMapping(bindingParameter.Type);
+                        customSqlModel.Bindings.Add(new SqlBinding()
+                        {
+                            Name = parameter.ParameterName,
+                            Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
+                            Value = bindingParameter.Name
+                        });
+                    }
                 }
             }
             operationGenerators.Add(new CustomSqlOperationGenerator(customSqlModel));

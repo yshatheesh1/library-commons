@@ -1,3 +1,5 @@
+using System;
+
 namespace BBCoders.Commons.Tools.QueryGenerator.Models
 {
     public class SqlBinding

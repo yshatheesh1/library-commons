@@ -1,8 +1,7 @@
 using System.Linq;
-using BBCoders.Commons.QueryConfiguration;
+using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
@@ -10,16 +9,17 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
     {
 
         private const string _modelSuffix = "DeleteModel";
-        public DeleteSqlOperationGenerator(ISqlGenerationHelper sqlGenerationHelper, ITable table) :
-        base(sqlGenerationHelper, table)
+        public DeleteSqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable table) :
+        base(dependencies, table)
         { }
 
         public override void GenerateSql(IndentedStringBuilder builder)
         {
             var keyColumns = GetMappings().Where(x => x.isPrimaryKey());
             var columns = keyColumns.Select(x => x.Name).ToArray();
+            var columnMappings = columns.Select(x => "@" + x).ToArray();
             builder.AppendLine($"DELETE FROM {DelimitTable(_table.Name, _table.Schema, true)}");
-            builder.Append(WhereClause(_table.Name, columns, columns, true));
+            builder.Append(WhereClause(_table.Name, columns, columnMappings, true));
         }
 
         public override void GenerateModel(IndentedStringBuilder builder)
@@ -34,7 +34,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var modelName = GetEntityName();
             var deleteModelName = modelName + _modelSuffix;
             var primaryKeyProperties = _table.PrimaryKey.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-            var inputs = string.Join(", ", primaryKeyProperties.Keys.Select(x => getTypeName(x.ClrType) + " " + x.Name));
+            var inputs = string.Join(", ", primaryKeyProperties.Keys.Select(x => getTypeName(x) + " " + x.Name));
             builder.AppendLine($"public async Task<int> Delete{modelName}({inputs})");
             builder.AppendLine("{");
             using (builder.Indent())
