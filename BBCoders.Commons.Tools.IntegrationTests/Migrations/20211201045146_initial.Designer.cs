@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 {
     [DbContext(typeof(TestContext))]
-    [Migration("20211128231005_initial")]
+    [Migration("20211201045146_initial")]
     partial class initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,14 +52,14 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime");
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP()");
 
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("datetime");
 
                     b.Property<byte[]>("FingerprintId")
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("varbinary(16)");
 
                     b.Property<bool>("IsActive")

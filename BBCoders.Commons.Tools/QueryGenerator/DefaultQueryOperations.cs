@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using BBCoders.Commons.Tools.QueryGenerator.Helpers;
+using Humanizer;
 
 namespace BBCoders.Commons.Tools.QueryGenerator
 {
@@ -30,7 +31,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator
         private IRelationalModel model;
         private ISqlGenerationHelper sqlGenerationHelper;
         private List<ICodeGenerator> codeGenerators = new List<ICodeGenerator>();
-        private List<ISqlOperationGenerator> operationGenerators;
+        private List<IOperationGenerator> operationGenerators;
         private IRelationalTypeMappingSource relationalTypeMappingSource;
         private IOperationReporter _reporter;
         public DefaultQueryOperations([NotNull] IOperationReporter reporter, [NotNull] Assembly assembly, [NotNull] Assembly startupAssembly, [NotNull] string projectDir, [NotNull] string rootNamespace, [NotNull] string[] designArgs) :
@@ -70,7 +71,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                         {
                             throw new ArgumentNullException(nameof(queryOptions));
                         }
-                        operationGenerators = new List<ISqlOperationGenerator>();
+                        operationGenerators = new List<IOperationGenerator>();
                         var createQuery = queryConfiguration.GetMethod("CreateQuery");
                         createQuery.Invoke(queryConfigurationInstance, new object[] { context, this });
                         codeGenerators.Add(new DefaultCodeGenerator(queryOptions, operationGenerators));
@@ -119,12 +120,16 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                     {
                         var relationalParameterBasedSqlProcessor = (RelationalParameterBasedSqlProcessor)relationalParameterBasedSqlProcessorInfo.GetValue(relationalCommandCache);
                         var selectExpression = (SelectExpression)selectExpressionInfo.GetValue(relationalCommandCache);
-                        foreach (var projection in selectExpression.Projection.GroupBy(x => x.Alias).Select(x => new { Key = x.Key, Value = x.First() }))
+                        foreach (var projection in selectExpression.Projection)
                         {
-                            var relMapping = relationalTypeMappingSource.GetMapping(projection.Value.Type);
+                            var columnExpression = (ColumnExpression)projection.Expression;
+                            var tableExpression = (TableExpression)columnExpression.Table;
+                            var relMapping = columnExpression.TypeMapping;
                             var sqlProjection = new SqlProjection()
                             {
-                                Name = projection.Key,
+                                IsNullable = columnExpression.IsNullable,
+                                Name = tableExpression.Name.Singularize() + projection.Alias,
+                                Value = projection.Alias,
                                 Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
                             };
                             customSqlModel.Projections.Add(sqlProjection);

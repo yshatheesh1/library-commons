@@ -60,7 +60,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     FingerprintId = table.Column<byte[]>(type: "varbinary(16)", nullable: false),
                     NmlsId = table.Column<long>(type: "bigint", nullable: false),
                     StateId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP()"),
                     UpdatedDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     CreatedById = table.Column<long>(type: "bigint", nullable: false),
                     LastUpdatedById = table.Column<long>(type: "bigint", nullable: false),

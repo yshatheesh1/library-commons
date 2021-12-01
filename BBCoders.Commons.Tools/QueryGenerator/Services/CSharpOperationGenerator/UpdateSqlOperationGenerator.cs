@@ -5,12 +5,15 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public class UpdateSqlOperationGenerator : SqlOperationGenerator
+    public class UpdateSqlOperationGenerator : CSharpOperationGenerator
     {
-        private const string _modelSuffix = "UpdateModel";
         public UpdateSqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable operation) :
         base(dependencies, operation)
         { }
+
+        public override void GenerateModel(IndentedStringBuilder builder)
+        {
+        }
 
         public override void GenerateSql(IndentedStringBuilder builder)
         {
@@ -27,24 +30,16 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                 setColumn[i] = column.Name;
                 setValue[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({delimitColumn}), @{column.Name})" : $"@{column.Name}";
             }
-            builder.AppendLine($"UPDATE {DelimitTable(_table.Name, _table.Schema, true)}");
-            builder.AppendLine(SetClause(_table.Name, setColumn, setValue, true));
-            builder.Append(WhereClause(_table.Name, keyColumns, keyColumnMappings, true));
-        }
-
-        public override void GenerateModel(IndentedStringBuilder builder)
-        {
-            var updateModelName = GetEntityName() + _modelSuffix;
-            var properties = _table.Columns.Select(x => x.PropertyMappings.First().Property);
-            GenerateModel(builder, updateModelName, properties);
+            builder.Append($"UPDATE {DelimitTable(_table.Name, _table.Schema, true)} {SetClause(_table.Name, setColumn, setValue, true)} {WhereClause(_table.Name, keyColumns, keyColumnMappings, true)};");
         }
 
         public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
         {
             var tableName = GetEntityName();
-            var updateModelName = tableName + "UpdateModel";
+            var modelName = getModelName();
+            var primaryKeys = _table.PrimaryKey.Columns.Select(x => x.Name);
             var properties = _table.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-            builder.AppendLine($"public async Task<int> Update{tableName}({updateModelName} {updateModelName})");
+            builder.AppendLine($"public async Task<int> Update{tableName}({modelName} {modelName})");
             builder.AppendLine("{");
             using (builder.Indent())
             {
@@ -60,9 +55,9 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in properties.Keys)
                     {
-                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {updateModelName}.{property.Name});");
+                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {modelName}.{property.Name});");
                     }
-                    builder.AppendLine("return await cmd.ExecuteNonQueryAsync();");
+                     builder.AppendLine("return await cmd.ExecuteNonQueryAsync();");
                 }
                 builder.AppendLine("}");
             }

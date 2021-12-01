@@ -5,12 +5,16 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public class InsertSqlOperationGenerator : SqlOperationGenerator
+    public class InsertSqlOperationGenerator : CSharpOperationGenerator
     {
-        private const string _modelSuffix = "InsertModel";
         public InsertSqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable operation) :
         base(dependencies, operation)
         { }
+
+
+        public override void GenerateModel(IndentedStringBuilder builder)
+        {
+        }
 
         public override void GenerateSql(IndentedStringBuilder builder)
         {
@@ -28,28 +32,19 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             }
             builder.AppendLine($"INSERT INTO {table} ({string.Join(", ", insertColumns)}) VALUES ({string.Join(", ", insertValues)});");
             if (autoIncrementColumn != null)
-                builder.Append("SELECT LAST_INSERT_ID()");
+                builder.Append($"SELECT * FROM {DelimitTable(_table.Name, _table.Schema, true)} WHERE {DelimitColumn(_table.Name, autoIncrementColumn.Name, true)} = LAST_INSERT_ID()");
+            else
+                new SelectSqlOperationGenerator(_dependencies, _table).GenerateSql(builder);
         }
-
-        public override void GenerateModel(IndentedStringBuilder builder)
-        {
-            var insertModelName = GetEntityName() + _modelSuffix;
-            var columns = GetMappings().Where(x => !x.isAutoIncrement()).Select(x => x.Name);
-            var properties = _table.Columns.Where(x => columns.Contains(x.Name)).Select(x => x.PropertyMappings.First().Property);
-            GenerateModel(builder, insertModelName, properties);
-        }
-
         public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
         {
-            var modelName = GetEntityName();
-            var insertModelName = modelName + _modelSuffix;
-
-            var columns = GetMappings().Where(x => x.isAutoIncrement()).Select(x => x.Name);
-            var autoIncrementColumn = _table.Columns.Where(x => columns.Contains(x.Name)).FirstOrDefault();
-            var returnType = autoIncrementColumn != null ? getTypeName(autoIncrementColumn.PropertyMappings.First().Property) : "int";
-            builder.AppendLine($"public async Task<{returnType}> Insert{modelName}({insertModelName} {insertModelName})");
+            var tableName = GetEntityName();
+            var modelName = getModelName();
+            var autoIncrementColumns = GetMappings().Where(x => x.isAutoIncrement()).Select(x => x.Name);
+            var autoIncrementColumn = _table.Columns.Where(x => autoIncrementColumns.Contains(x.Name)).FirstOrDefault()?.PropertyMappings.First().Property;
+            builder.AppendLine($"public async Task<{modelName}> Insert{tableName}({modelName} {modelName})");
             builder.AppendLine("{");
-            var nonAutoIncrementColumn = _table.Columns.Where(x => x != autoIncrementColumn);
+            var nonAutoIncrementColumn = _table.Columns.Where(x => !autoIncrementColumns.Contains(x.Name));
             var properties = nonAutoIncrementColumn.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
 
             using (builder.Indent())
@@ -66,16 +61,9 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
                     foreach (var property in properties.Keys)
                     {
-                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {insertModelName}.{property.Name});");
+                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {modelName}.{property.Name});");
                     }
-                    if (autoIncrementColumn != null)
-                    {
-                        builder.AppendLine($"return Convert.To{returnType}(await cmd.ExecuteScalarAsync());");
-                    }
-                    else
-                    {
-                        builder.AppendLine("return await cmd.ExecuteNonQueryAsync();");
-                    }
+                    builder.AppendLine($"return await GetResult(cmd, {modelName});");
                 }
                 builder.AppendLine("}");
             }

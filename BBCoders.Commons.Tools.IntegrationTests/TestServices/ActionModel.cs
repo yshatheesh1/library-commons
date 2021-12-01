@@ -9,10 +9,10 @@ using System;
 
 namespace BBCoders.Example.DataServices
 {
-    public class StateModel
+    public class ActionModel
     {
         public Int64 Id { get; set; }
-        public String? Name { get; set; }
-        public Byte[] StateId { get; set; }
+        public Byte[] ActionId { get; set; }
+        public String Name { get; set; }
     }
 }

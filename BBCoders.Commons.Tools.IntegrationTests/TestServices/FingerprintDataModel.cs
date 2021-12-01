@@ -9,7 +9,7 @@ using System;
 
 namespace BBCoders.Example.DataServices
 {
-    public class FingerprintSelectModel
+    public class FingerprintModel
     {
         public Int64 Id { get; set; }
         public Int64 CreatedById { get; set; }
@@ -22,36 +22,5 @@ namespace BBCoders.Example.DataServices
         public DateTime? RenewalDate { get; set; }
         public Int64 StateId { get; set; }
         public DateTime UpdatedDate { get; set; }
-    }
-    public class FingerprintInsertModel
-    {
-        public Int64 CreatedById { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime? ExpirationDate { get; set; }
-        public Byte[] FingerprintId { get; set; }
-        public Boolean IsActive { get; set; }
-        public Int64 LastUpdatedById { get; set; }
-        public Int64 NmlsId { get; set; }
-        public DateTime? RenewalDate { get; set; }
-        public Int64 StateId { get; set; }
-        public DateTime UpdatedDate { get; set; }
-    }
-    public class FingerprintUpdateModel
-    {
-        public Int64 Id { get; set; }
-        public Int64 CreatedById { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime? ExpirationDate { get; set; }
-        public Byte[] FingerprintId { get; set; }
-        public Boolean IsActive { get; set; }
-        public Int64 LastUpdatedById { get; set; }
-        public Int64 NmlsId { get; set; }
-        public DateTime? RenewalDate { get; set; }
-        public Int64 StateId { get; set; }
-        public DateTime UpdatedDate { get; set; }
-    }
-    public class FingerprintDeleteModel
-    {
-        public Int64 Id { get; set; }
     }
 }

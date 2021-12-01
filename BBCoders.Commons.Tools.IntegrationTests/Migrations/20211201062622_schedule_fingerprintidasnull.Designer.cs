@@ -3,14 +3,16 @@ using System;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 {
     [DbContext(typeof(TestContext))]
-    partial class TestContextModelSnapshot : ModelSnapshot
+    [Migration("20211201062622_schedule_fingerprintidasnull")]
+    partial class schedule_fingerprintidasnull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

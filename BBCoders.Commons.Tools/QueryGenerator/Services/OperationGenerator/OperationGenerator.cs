@@ -6,42 +6,31 @@ using System.Text;
 using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.QueryGenerator.Helpers;
 using BBCoders.Commons.Tools.QueryGenerator.Models;
+using Humanizer;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public abstract class SqlOperationGenerator : ISqlOperationGenerator
+    public abstract class OperationGenerator : IOperationGenerator
     {
         protected ISqlGenerationHelper _sqlGenerationHelper;
         protected IRelationalTypeMappingSource _relationalTypeMappingSource;
+        protected SqlOperationGeneratorDependencies _dependencies;
         protected ITable _table;
-        public SqlOperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable procedureOperation)
+        public OperationGenerator(SqlOperationGeneratorDependencies dependencies, ITable table)
         {
+            _dependencies = dependencies;
             _sqlGenerationHelper = dependencies.sqlGenerationHelper;
             _relationalTypeMappingSource = dependencies.relationalTypeMappingSource;
-            this._table = procedureOperation;
+            _table = table;
         }
 
         public abstract void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
-        public abstract void GenerateModel(IndentedStringBuilder builder);
         public abstract void GenerateMethod(IndentedStringBuilder builder, string connectionString);
 
-        protected void GenerateModel(IndentedStringBuilder builder, string className, IEnumerable<IProperty> properties)
-        {
-            builder.AppendLine($"public class {className}");
-            builder.AppendLine("{");
-            using (builder.Indent())
-            {
-                foreach (var property in properties)
-                {
-                    builder.Append($"public {getTypeName(property)} {property.Name}")
-                            .AppendLine(" { get; set; }");
-                }
-            }
-            builder.AppendLine("}");
-        }
+        public abstract void GenerateModel(IndentedStringBuilder builder);
 
         protected string GenerateParamSentence(IEnumerable<ParameterModel> Parameters)
         {
@@ -120,13 +109,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
 
         protected string getTypeName(IProperty property)
         {
+            var suffix = property.IsNullable ? "?" : "";
             var type = _relationalTypeMappingSource.FindMapping(property);
             if (type.DbType.HasValue)
             {
-                var suffix = property.IsNullable ? "?" : "";
                 return SqlMapperHelper.getClrType(type.DbType.Value).Name + suffix;
             }
-            return getTypeName(type.ClrType);
+            return getTypeName(type.ClrType) + suffix;
         }
 
         protected string getTypeName(Type clrType)
@@ -137,8 +126,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
 
         protected string PascalCase(string name)
         {
-            var result = new string(name.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
-            return new CultureInfo("en-US", false).TextInfo.ToTitleCase(result);
+            return name.Pascalize();
         }
 
         protected List<ParameterModel> GetMappings()
@@ -172,5 +160,6 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var tableName = _table.EntityTypeMappings.First().EntityType.ClrType.Name;
             return tableName;
         }
+
     }
 }

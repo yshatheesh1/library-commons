@@ -3,14 +3,16 @@ using System;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 {
     [DbContext(typeof(TestContext))]
-    partial class TestContextModelSnapshot : ModelSnapshot
+    [Migration("20211201061537_schedule_actionidasnull")]
+    partial class schedule_actionidasnull
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,7 +105,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime");
 
-                    b.Property<long?>("FingerPrintId")
+                    b.Property<long>("FingerPrintId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("LastUpdatedById")
@@ -202,7 +204,9 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 
                     b.HasOne("BBCoders.Commons.Tools.IntegrationTests.Context.Fingerprint", "Fingerprint")
                         .WithMany()
-                        .HasForeignKey("FingerPrintId");
+                        .HasForeignKey("FingerPrintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("BBCoders.Commons.Tools.IntegrationTests.Context.ScheduleSite", "scheduleSite")
                         .WithMany()

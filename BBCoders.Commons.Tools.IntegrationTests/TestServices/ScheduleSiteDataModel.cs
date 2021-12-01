@@ -9,39 +9,22 @@ using System;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ScheduleSiteSelectModel
+    public class ScheduleSiteModel
     {
         public Int64 Id { get; set; }
         public Boolean IsActive { get; set; }
         public String Name { get; set; }
         public Byte[] ScheduleSiteId { get; set; }
     }
-    public class ScheduleSiteInsertModel
-    {
-        public Boolean IsActive { get; set; }
-        public String Name { get; set; }
-        public Byte[] ScheduleSiteId { get; set; }
-    }
-    public class ScheduleSiteUpdateModel
-    {
-        public Int64 Id { get; set; }
-        public Boolean IsActive { get; set; }
-        public String Name { get; set; }
-        public Byte[] ScheduleSiteId { get; set; }
-    }
-    public class ScheduleSiteDeleteModel
-    {
-        public Int64 Id { get; set; }
-    }
-    public class GetshedulesitestatusRequestModel
+    public class GetSheduleSiteStatusRequestModel
     {
         public Byte[] id { get; set; }
     }
-    public class GetshedulesitestatusResponseModel
+    public class GetSheduleSiteStatusResponseModel
     {
-        public Int64 Id { get; set; }
-        public Boolean IsActive { get; set; }
-        public String Name { get; set; }
-        public Byte[] ScheduleSiteId { get; set; }
+        public Int64 ScheduleSiteId { get; set; }
+        public Boolean ScheduleSiteIsActive { get; set; }
+        public String ScheduleSiteName { get; set; }
+        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
     }
 }

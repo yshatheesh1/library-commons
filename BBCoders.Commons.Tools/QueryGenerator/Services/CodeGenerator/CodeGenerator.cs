@@ -9,12 +9,12 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
     public class DefaultCodeGenerator : ICodeGenerator
     {
         private readonly QueryOptions _queryOptions;
-        private readonly List<ISqlOperationGenerator> _operationGenerators;
+        private readonly List<IOperationGenerator> _operationGenerators;
 
-        public DefaultCodeGenerator(QueryOptions queryOptions, List<ISqlOperationGenerator> operationGenerators)
+        public DefaultCodeGenerator(QueryOptions queryOptions, List<IOperationGenerator> operationGenerators)
         {
             _queryOptions = queryOptions;
-            _operationGenerators = new List<ISqlOperationGenerator>(operationGenerators);
+            _operationGenerators = new List<IOperationGenerator>(operationGenerators);
         }
 
         public void Generate()

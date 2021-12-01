@@ -15,78 +15,77 @@ namespace BBCoders.Example.DataServices
     {
         private readonly string _connectionString;
         public FingerprintRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<FingerprintSelectModel> SelectFingerprint(Int64 Id)
+        public async Task<FingerprintModel> SelectFingerprint(Int64 Id)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` 
-                FROM `Fingerprint` AS `f`
-                WHERE `f`.`Id` = @Id";
+                string sql = @"SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
-                FingerprintSelectModel result = null;
-                var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    result = new FingerprintSelectModel();
-                    result.Id = (Int64)reader["Id"];
-                    result.CreatedById = (Int64)reader["CreatedById"];
-                    result.CreatedDate = (DateTime)reader["CreatedDate"];
-                    result.ExpirationDate = (DateTime?)reader["ExpirationDate"];
-                    result.FingerprintId = (Byte[])reader["FingerprintId"];
-                    result.IsActive = (Boolean)reader["IsActive"];
-                    result.LastUpdatedById = (Int64)reader["LastUpdatedById"];
-                    result.NmlsId = (Int64)reader["NmlsId"];
-                    result.RenewalDate = (DateTime?)reader["RenewalDate"];
-                    result.StateId = (Int64)reader["StateId"];
-                    result.UpdatedDate = (DateTime)reader["UpdatedDate"];
-                }
-                reader.Close();
-                return result;
+                return await GetResult(cmd);
             }
         }
-        public async Task<Int64> InsertFingerprint(FingerprintInsertModel FingerprintInsertModel)
+        private async Task<FingerprintModel> GetResult(MySqlCommand cmd, FingerprintModel result = null)
+        {
+            var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if(result == null) result = new FingerprintModel();
+                result.Id = (Int64)reader["Id"];
+                result.CreatedById = (Int64)reader["CreatedById"];
+                result.CreatedDate = (DateTime)reader["CreatedDate"];
+                result.ExpirationDate = Convert.IsDBNull(reader["ExpirationDate"]) ? null : (DateTime?)reader["ExpirationDate"];
+                result.FingerprintId = (Byte[])reader["FingerprintId"];
+                result.IsActive = (Boolean)reader["IsActive"];
+                result.LastUpdatedById = (Int64)reader["LastUpdatedById"];
+                result.NmlsId = (Int64)reader["NmlsId"];
+                result.RenewalDate = Convert.IsDBNull(reader["RenewalDate"]) ? null : (DateTime?)reader["RenewalDate"];
+                result.StateId = (Int64)reader["StateId"];
+                result.UpdatedDate = (DateTime)reader["UpdatedDate"];
+            }
+            reader.Close();
+            return result;
+        }
+        public async Task<FingerprintModel> InsertFingerprint(FingerprintModel FingerprintModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"INSERT INTO `Fingerprint` (`CreatedById`, `CreatedDate`, `ExpirationDate`, `FingerprintId`, `IsActive`, `LastUpdatedById`, `NmlsId`, `RenewalDate`, `StateId`, `UpdatedDate`) VALUES (@CreatedById, @CreatedDate, @ExpirationDate, If(@FingerprintId IS NULL,DEFAULT(`Fingerprint`.`FingerprintId`), @FingerprintId), @IsActive, @LastUpdatedById, @NmlsId, @RenewalDate, @StateId, @UpdatedDate);
-                SELECT LAST_INSERT_ID()";
+                string sql = @"INSERT INTO `Fingerprint` (`CreatedById`, `CreatedDate`, `ExpirationDate`, `FingerprintId`, `IsActive`, `LastUpdatedById`, `NmlsId`, `RenewalDate`, `StateId`, `UpdatedDate`) VALUES (@CreatedById, If(@CreatedDate IS NULL,DEFAULT(`Fingerprint`.`CreatedDate`), @CreatedDate), @ExpirationDate, @FingerprintId, @IsActive, @LastUpdatedById, @NmlsId, @RenewalDate, @StateId, @UpdatedDate);
+                SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID()";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@CreatedById", FingerprintInsertModel.CreatedById);
-                cmd.Parameters.AddWithValue("@CreatedDate", FingerprintInsertModel.CreatedDate);
-                cmd.Parameters.AddWithValue("@ExpirationDate", FingerprintInsertModel.ExpirationDate);
-                cmd.Parameters.AddWithValue("@FingerprintId", FingerprintInsertModel.FingerprintId);
-                cmd.Parameters.AddWithValue("@IsActive", FingerprintInsertModel.IsActive);
-                cmd.Parameters.AddWithValue("@LastUpdatedById", FingerprintInsertModel.LastUpdatedById);
-                cmd.Parameters.AddWithValue("@NmlsId", FingerprintInsertModel.NmlsId);
-                cmd.Parameters.AddWithValue("@RenewalDate", FingerprintInsertModel.RenewalDate);
-                cmd.Parameters.AddWithValue("@StateId", FingerprintInsertModel.StateId);
-                cmd.Parameters.AddWithValue("@UpdatedDate", FingerprintInsertModel.UpdatedDate);
-                return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                cmd.Parameters.AddWithValue("@CreatedById", FingerprintModel.CreatedById);
+                cmd.Parameters.AddWithValue("@CreatedDate", FingerprintModel.CreatedDate);
+                cmd.Parameters.AddWithValue("@ExpirationDate", FingerprintModel.ExpirationDate);
+                cmd.Parameters.AddWithValue("@FingerprintId", FingerprintModel.FingerprintId);
+                cmd.Parameters.AddWithValue("@IsActive", FingerprintModel.IsActive);
+                cmd.Parameters.AddWithValue("@LastUpdatedById", FingerprintModel.LastUpdatedById);
+                cmd.Parameters.AddWithValue("@NmlsId", FingerprintModel.NmlsId);
+                cmd.Parameters.AddWithValue("@RenewalDate", FingerprintModel.RenewalDate);
+                cmd.Parameters.AddWithValue("@StateId", FingerprintModel.StateId);
+                cmd.Parameters.AddWithValue("@UpdatedDate", FingerprintModel.UpdatedDate);
+                return await GetResult(cmd, FingerprintModel);
             }
         }
-        public async Task<int> UpdateFingerprint(FingerprintUpdateModel FingerprintUpdateModel)
+        public async Task<int> UpdateFingerprint(FingerprintModel FingerprintModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"UPDATE `Fingerprint` AS `f`
-                SET `f`.`CreatedById` = @CreatedById, `f`.`CreatedDate` = @CreatedDate, `f`.`ExpirationDate` = @ExpirationDate, `f`.`FingerprintId` = If(@FingerprintId IS NULL,DEFAULT(`f`.`FingerprintId`), @FingerprintId), `f`.`IsActive` = @IsActive, `f`.`LastUpdatedById` = @LastUpdatedById, `f`.`NmlsId` = @NmlsId, `f`.`RenewalDate` = @RenewalDate, `f`.`StateId` = @StateId, `f`.`UpdatedDate` = @UpdatedDate
-                WHERE `f`.`Id` = @Id";
+                string sql = @"UPDATE `Fingerprint` AS `f` SET `f`.`CreatedById` = @CreatedById, `f`.`CreatedDate` = If(@CreatedDate IS NULL,DEFAULT(`f`.`CreatedDate`), @CreatedDate), `f`.`ExpirationDate` = @ExpirationDate, `f`.`FingerprintId` = @FingerprintId, `f`.`IsActive` = @IsActive, `f`.`LastUpdatedById` = @LastUpdatedById, `f`.`NmlsId` = @NmlsId, `f`.`RenewalDate` = @RenewalDate, `f`.`StateId` = @StateId, `f`.`UpdatedDate` = @UpdatedDate WHERE `f`.`Id` = @Id;";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", FingerprintUpdateModel.Id);
-                cmd.Parameters.AddWithValue("@CreatedById", FingerprintUpdateModel.CreatedById);
-                cmd.Parameters.AddWithValue("@CreatedDate", FingerprintUpdateModel.CreatedDate);
-                cmd.Parameters.AddWithValue("@ExpirationDate", FingerprintUpdateModel.ExpirationDate);
-                cmd.Parameters.AddWithValue("@FingerprintId", FingerprintUpdateModel.FingerprintId);
-                cmd.Parameters.AddWithValue("@IsActive", FingerprintUpdateModel.IsActive);
-                cmd.Parameters.AddWithValue("@LastUpdatedById", FingerprintUpdateModel.LastUpdatedById);
-                cmd.Parameters.AddWithValue("@NmlsId", FingerprintUpdateModel.NmlsId);
-                cmd.Parameters.AddWithValue("@RenewalDate", FingerprintUpdateModel.RenewalDate);
-                cmd.Parameters.AddWithValue("@StateId", FingerprintUpdateModel.StateId);
-                cmd.Parameters.AddWithValue("@UpdatedDate", FingerprintUpdateModel.UpdatedDate);
+                cmd.Parameters.AddWithValue("@Id", FingerprintModel.Id);
+                cmd.Parameters.AddWithValue("@CreatedById", FingerprintModel.CreatedById);
+                cmd.Parameters.AddWithValue("@CreatedDate", FingerprintModel.CreatedDate);
+                cmd.Parameters.AddWithValue("@ExpirationDate", FingerprintModel.ExpirationDate);
+                cmd.Parameters.AddWithValue("@FingerprintId", FingerprintModel.FingerprintId);
+                cmd.Parameters.AddWithValue("@IsActive", FingerprintModel.IsActive);
+                cmd.Parameters.AddWithValue("@LastUpdatedById", FingerprintModel.LastUpdatedById);
+                cmd.Parameters.AddWithValue("@NmlsId", FingerprintModel.NmlsId);
+                cmd.Parameters.AddWithValue("@RenewalDate", FingerprintModel.RenewalDate);
+                cmd.Parameters.AddWithValue("@StateId", FingerprintModel.StateId);
+                cmd.Parameters.AddWithValue("@UpdatedDate", FingerprintModel.UpdatedDate);
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
@@ -95,8 +94,7 @@ namespace BBCoders.Example.DataServices
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"DELETE FROM `Fingerprint` AS `f`
-                WHERE `f`.`Id` = @Id";
+                string sql = @"DELETE FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
                 return await cmd.ExecuteNonQueryAsync();

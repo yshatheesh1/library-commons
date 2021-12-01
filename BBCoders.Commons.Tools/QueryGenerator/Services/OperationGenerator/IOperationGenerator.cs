@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public interface ISqlOperationGenerator
+    public interface IOperationGenerator
     {
-        void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
+        void GenerateSql(IndentedStringBuilder builder);
         void GenerateModel(IndentedStringBuilder builder);
         void GenerateMethod(IndentedStringBuilder builder, string connectionString);
     }

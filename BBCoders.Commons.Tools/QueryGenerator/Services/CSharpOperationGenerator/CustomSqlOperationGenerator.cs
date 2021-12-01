@@ -2,11 +2,12 @@ using System.Globalization;
 using System.Linq;
 using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.QueryGenerator.Models;
+using Humanizer;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace BBCoders.Commons.Tools.QueryGenerator.Services
 {
-    public class CustomSqlOperationGenerator : ISqlOperationGenerator
+    public class CustomSqlOperationGenerator : IOperationGenerator
     {
         private const string _modelSuffix = "SelectModel";
         private readonly SqlModel customSqlModel;
@@ -42,7 +43,8 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             {
                 foreach (var parameter in customSqlModel.Projections)
                 {
-                    builder.Append($"public {parameter.Type} {parameter.Name}")
+                    var type = parameter.IsNullable ? parameter.Type + "?" : parameter.Type;
+                    builder.Append($"public {type} {parameter.Name}")
                             .AppendLine(" { get; set; }");
                 }
             }
@@ -85,9 +87,14 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                     using (builder.Indent())
                     {
                         builder.AppendLine($"result = new {responseModelName}();");
-                        foreach (var property in customSqlModel.Projections)
+                        for (var i = 0; i < customSqlModel.Projections.Count; i++)
                         {
-                            builder.AppendLine($"result.{property.Name} = ({property.Type})reader[\"{property.Name}\"];");
+                            var property = customSqlModel.Projections[i];
+                            var type = property.IsNullable ? property.Type + "?" : property.Type;
+                            builder.Append($"result.{property.Name} = ");
+                            if (property.IsNullable)
+                                builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");
+                            builder.AppendLine($"({type})reader[{i}];");
                         }
                     }
                     builder.AppendLine("}");
@@ -100,13 +107,12 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
         }
         string PascalCase(string name)
         {
-            var result = new string(name.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
-            return new CultureInfo("en-US", false).TextInfo.ToTitleCase(result);
+            return name.Pascalize();
         }
 
         public void GenerateSql(IndentedStringBuilder migrationCommandListBuilder)
         {
-            migrationCommandListBuilder.Append(customSqlModel.Sql);
+            migrationCommandListBuilder.Append(customSqlModel.Sql.Replace("\n", "\n\t\t\t\t"));
         }
     }
 

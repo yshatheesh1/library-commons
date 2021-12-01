@@ -15,57 +15,56 @@ namespace BBCoders.Example.DataServices
     {
         private readonly string _connectionString;
         public ScheduleSiteRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<ScheduleSiteSelectModel> SelectScheduleSite(Int64 Id)
+        public async Task<ScheduleSiteModel> SelectScheduleSite(Int64 Id)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` 
-                FROM `ScheduleSites` AS `s`
-                WHERE `s`.`Id` = @Id";
+                string sql = @"SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
-                ScheduleSiteSelectModel result = null;
-                var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    result = new ScheduleSiteSelectModel();
-                    result.Id = (Int64)reader["Id"];
-                    result.IsActive = (Boolean)reader["IsActive"];
-                    result.Name = (String)reader["Name"];
-                    result.ScheduleSiteId = (Byte[])reader["ScheduleSiteId"];
-                }
-                reader.Close();
-                return result;
+                return await GetResult(cmd);
             }
         }
-        public async Task<Int64> InsertScheduleSite(ScheduleSiteInsertModel ScheduleSiteInsertModel)
+        private async Task<ScheduleSiteModel> GetResult(MySqlCommand cmd, ScheduleSiteModel result = null)
+        {
+            var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                if(result == null) result = new ScheduleSiteModel();
+                result.Id = (Int64)reader["Id"];
+                result.IsActive = (Boolean)reader["IsActive"];
+                result.Name = (String)reader["Name"];
+                result.ScheduleSiteId = (Byte[])reader["ScheduleSiteId"];
+            }
+            reader.Close();
+            return result;
+        }
+        public async Task<ScheduleSiteModel> InsertScheduleSite(ScheduleSiteModel ScheduleSiteModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
                 string sql = @"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive, @Name, @ScheduleSiteId);
-                SELECT LAST_INSERT_ID()";
+                SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteInsertModel.IsActive);
-                cmd.Parameters.AddWithValue("@Name", ScheduleSiteInsertModel.Name);
-                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteInsertModel.ScheduleSiteId);
-                return Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteModel.IsActive);
+                cmd.Parameters.AddWithValue("@Name", ScheduleSiteModel.Name);
+                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteModel.ScheduleSiteId);
+                return await GetResult(cmd, ScheduleSiteModel);
             }
         }
-        public async Task<int> UpdateScheduleSite(ScheduleSiteUpdateModel ScheduleSiteUpdateModel)
+        public async Task<int> UpdateScheduleSite(ScheduleSiteModel ScheduleSiteModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"UPDATE `ScheduleSites` AS `s`
-                SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId
-                WHERE `s`.`Id` = @Id";
+                string sql = @"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", ScheduleSiteUpdateModel.Id);
-                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteUpdateModel.IsActive);
-                cmd.Parameters.AddWithValue("@Name", ScheduleSiteUpdateModel.Name);
-                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteUpdateModel.ScheduleSiteId);
+                cmd.Parameters.AddWithValue("@Id", ScheduleSiteModel.Id);
+                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteModel.IsActive);
+                cmd.Parameters.AddWithValue("@Name", ScheduleSiteModel.Name);
+                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteModel.ScheduleSiteId);
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
@@ -74,32 +73,31 @@ namespace BBCoders.Example.DataServices
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"DELETE FROM `ScheduleSites` AS `s`
-                WHERE `s`.`Id` = @Id";
+                string sql = @"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<GetshedulesitestatusResponseModel> Getshedulesitestatus(GetshedulesitestatusRequestModel GetshedulesitestatusRequestModel)
+        public async Task<GetSheduleSiteStatusResponseModel> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
                 string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
-FROM `ScheduleSites` AS `s`
-WHERE `s`.`ScheduleSiteId` = @__Value_0";
+				FROM `ScheduleSites` AS `s`
+				WHERE `s`.`ScheduleSiteId` = @__Value_0";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@__Value_0", GetshedulesitestatusRequestModel.id);
-                GetshedulesitestatusResponseModel result = null;
+                cmd.Parameters.AddWithValue("@__Value_0", GetSheduleSiteStatusRequestModel.id);
+                GetSheduleSiteStatusResponseModel result = null;
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    result = new GetshedulesitestatusResponseModel();
-                    result.Id = (Int64)reader["Id"];
-                    result.IsActive = (Boolean)reader["IsActive"];
-                    result.Name = (String)reader["Name"];
-                    result.ScheduleSiteId = (Byte[])reader["ScheduleSiteId"];
+                    result = new GetSheduleSiteStatusResponseModel();
+                    result.ScheduleSiteId = (Int64)reader[0];
+                    result.ScheduleSiteIsActive = (Boolean)reader[1];
+                    result.ScheduleSiteName = (String)reader[2];
+                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[3];
                 }
                 reader.Close();
                 return result;

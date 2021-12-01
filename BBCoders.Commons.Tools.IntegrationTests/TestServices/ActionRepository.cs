@@ -11,66 +11,66 @@ using MySqlConnector;
 
 namespace BBCoders.Example.DataServices
 {
-    public class StateRepository
+    public class ActionRepository
     {
         private readonly string _connectionString;
-        public StateRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<StateModel> SelectState(Int64 Id)
+        public ActionRepository(string connectionString){ this._connectionString = connectionString; }
+        public async Task<ActionModel> SelectAction(Int64 Id)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT * FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+                string sql = @"SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
                 return await GetResult(cmd);
             }
         }
-        private async Task<StateModel> GetResult(MySqlCommand cmd, StateModel result = null)
+        private async Task<ActionModel> GetResult(MySqlCommand cmd, ActionModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if(result == null) result = new StateModel();
+                if(result == null) result = new ActionModel();
                 result.Id = (Int64)reader["Id"];
-                result.Name = Convert.IsDBNull(reader["Name"]) ? null : (String?)reader["Name"];
-                result.StateId = (Byte[])reader["StateId"];
+                result.ActionId = (Byte[])reader["ActionId"];
+                result.Name = (String)reader["Name"];
             }
             reader.Close();
             return result;
         }
-        public async Task<StateModel> InsertState(StateModel StateModel)
+        public async Task<ActionModel> InsertAction(ActionModel ActionModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name, @StateId);
-                SELECT * FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
+                string sql = @"INSERT INTO `Actions` (`ActionId`, `Name`) VALUES (@ActionId, @Name);
+                SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID()";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Name", StateModel.Name);
-                cmd.Parameters.AddWithValue("@StateId", StateModel.StateId);
-                return await GetResult(cmd, StateModel);
+                cmd.Parameters.AddWithValue("@ActionId", ActionModel.ActionId);
+                cmd.Parameters.AddWithValue("@Name", ActionModel.Name);
+                return await GetResult(cmd, ActionModel);
             }
         }
-        public async Task<int> UpdateState(StateModel StateModel)
+        public async Task<int> UpdateAction(ActionModel ActionModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;";
+                string sql = @"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId, `a`.`Name` = @Name WHERE `a`.`Id` = @Id;";
                 var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", StateModel.Id);
-                cmd.Parameters.AddWithValue("@Name", StateModel.Name);
-                cmd.Parameters.AddWithValue("@StateId", StateModel.StateId);
+                cmd.Parameters.AddWithValue("@Id", ActionModel.Id);
+                cmd.Parameters.AddWithValue("@ActionId", ActionModel.ActionId);
+                cmd.Parameters.AddWithValue("@Name", ActionModel.Name);
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<int> DeleteState(Int64 Id)
+        public async Task<int> DeleteAction(Int64 Id)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+                string sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
                 return await cmd.ExecuteNonQueryAsync();

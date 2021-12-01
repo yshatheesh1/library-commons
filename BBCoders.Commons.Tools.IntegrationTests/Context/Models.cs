@@ -30,7 +30,6 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
         public long Id { get; set; }
 
         [Required]
-        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public Guid FingerprintId { get; set; }
 
         [Required]
@@ -89,7 +88,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
         [Required]
         public Guid ScheduleId { get; set; }
 
-        public long FingerPrintId { get; set; }
+        public long? FingerPrintId { get; set; }
 
         [Required]
         [Column(TypeName = "datetime")]
@@ -97,7 +96,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
 
         public long ScheduleSiteId { get; set; }
 
-        public long ActionId { get; set; }
+        public long? ActionId { get; set; }
 
         [Required]
         [Column(TypeName = "datetime")]

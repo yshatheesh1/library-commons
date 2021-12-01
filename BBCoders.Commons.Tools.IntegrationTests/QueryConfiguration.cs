@@ -3,10 +3,12 @@ using System.IO;
 using System.Linq;
 using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
+using Microsoft.EntityFrameworkCore;
+using Action = BBCoders.Commons.Tools.IntegrationTests.Context.Action;
 
 namespace BBCoders.Commons.Tools.IntegrationTests
 {
-    public class QueryConfigurationTest1 : IQueryConfiguration<TestContext>
+    public class ScheduleSiteConfiguration : IQueryConfiguration<TestContext>
     {
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
@@ -28,7 +30,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             };
         }
     }
-    public class QueryConfigurationTest2 : IQueryConfiguration<TestContext>
+    public class FingerprintConfiguration : IQueryConfiguration<TestContext>
     {
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
@@ -50,7 +52,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         }
     }
 
-     public class QueryConfigurationTest3 : IQueryConfiguration<TestContext>
+    public class Stateconfiguration : IQueryConfiguration<TestContext>
     {
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
@@ -69,6 +71,52 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 FileName = "StateRepository",
                 ModelFileName = "StateDataModel"
             };
+        }
+    }
+
+    public class ScheduleConfiguration : IQueryConfiguration<TestContext>
+    {
+        public void CreateQuery(TestContext context, QueryOperations queryOperations)
+        {
+            queryOperations.Add<Schedule>();
+            queryOperations.Add<Guid>("GetShedule", (id) => context.Schedules.Include(x => x.scheduleSite).Where(x => x.ScheduleId == id));
+        }
+
+        public QueryOptions GetQueryOptions()
+        {
+            return new QueryOptions()
+            {
+                ClassName = "ScheduleRepository",
+                Language = "csharp",
+                OutputDirectory = Path.Combine(QueryGeneratorTests.TestCurrentDirectory, "TestServices"),
+                PackageName = "BBCoders.Example.DataServices",
+                FileExtension = "cs",
+                FileName = "ScheduleRepository",
+                ModelFileName = "ScheduleDataModel"
+            };
+        }
+
+        public class ActionConfiguration : IQueryConfiguration<TestContext>
+        {
+            public void CreateQuery(TestContext context, QueryOperations queryOperations)
+            {
+                queryOperations.Add<Action>();
+            }
+
+            public QueryOptions GetQueryOptions()
+            {
+                return new QueryOptions()
+                {
+                    ClassName = "ActionRepository",
+                    Language = "csharp",
+                    OutputDirectory = Path.Combine(QueryGeneratorTests.TestCurrentDirectory, "TestServices"),
+                    PackageName = "BBCoders.Example.DataServices",
+                    FileExtension = "cs",
+                    FileName = "ActionRepository",
+                    ModelFileName = "ActionModel"
+                };
+            }
+
         }
     }
 }
