@@ -11,18 +11,18 @@ namespace BBCoders.Commons.Tools.IntegrationTests
     {
         public static readonly string TestCurrentDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
 
-        [Fact]
-        public void GenerateFiles()
-        {
-            var project = Project.FromFile(TestCurrentDirectory);
-            var test = new ScheduleSiteConfiguration().GetQueryOptions();
-            new OperationExecutor(project).ExecuteQueryOperations();
+        // [Fact]
+        // public void GenerateFiles()
+        // {
+        //     var project = Project.FromFile(TestCurrentDirectory);
+        //     var test = new ScheduleSiteConfiguration().GetQueryOptions();
+        //     new OperationExecutor(project).ExecuteQueryOperations();
 
-            // assert files are generated
-            Assert.True(Directory.Exists(test.OutputDirectory));
-            Assert.True(File.Exists(Path.Combine(test.OutputDirectory, test.ModelFileName + "." + test.FileExtension)));
-            Assert.True(File.Exists(Path.Combine(test.OutputDirectory, test.FileName + "." + test.FileExtension)));
-        }
+        //     // assert files are generated
+        //     Assert.True(Directory.Exists(test.OutputDirectory));
+        //     Assert.True(File.Exists(Path.Combine(test.OutputDirectory, test.ModelFileName + "." + test.FileExtension)));
+        //     Assert.True(File.Exists(Path.Combine(test.OutputDirectory, test.FileName + "." + test.FileExtension)));
+        // }
 
         [Fact]
         public async Task CreatesScheduleModelAndRepository()

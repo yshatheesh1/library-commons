@@ -18,7 +18,7 @@
 </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BBCoders.Commons.Tools\BBCoders.Commons.Tools.csproj" />
+    <ProjectReference Include="..\BBCoders.Commons.QueryConfiguration\BBCoders.Commons.QueryConfiguration.csproj" />
   </ItemGroup> 
 
 </Project>
