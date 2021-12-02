@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Generates package from query configuration</Description> 
-    <Version>0.0.9</Version>
+    <Version>0.0.10</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <TargetFramework>netcoreapp3.1</TargetFramework>
