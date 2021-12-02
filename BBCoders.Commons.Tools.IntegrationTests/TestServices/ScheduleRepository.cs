@@ -97,7 +97,31 @@ namespace BBCoders.Example.DataServices
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<GetSheduleResponseModel> GetShedule(GetSheduleRequestModel GetSheduleRequestModel)
+        public async Task<System.Collections.Generic.List<GetSheduleActionResponseModel>> GetSheduleAction(GetSheduleActionRequestModel GetSheduleActionRequestModel)
+        {
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string sql = @"SELECT `s`.`ActionId` AS `action`, `s`.`Id` AS `id`, `s`.`ScheduleId` AS `schedule_id`
+				FROM `Schedules` AS `s`
+				WHERE `s`.`ScheduleId` = @__Value_0";
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@__Value_0", GetSheduleActionRequestModel.id);
+                System.Collections.Generic.List<GetSheduleActionResponseModel> results = new System.Collections.Generic.List<GetSheduleActionResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetSheduleActionResponseModel result = new GetSheduleActionResponseModel();
+                    result.Scheduleaction = Convert.IsDBNull(reader[0]) ? null : (Int64?)reader[0];
+                    result.Scheduleid = (Int64)reader[1];
+                    result.Scheduleschedule_id = (Byte[])reader[2];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
+        public async Task<System.Collections.Generic.List<GetSheduleResponseModel>> GetShedule(GetSheduleRequestModel GetSheduleRequestModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
@@ -108,11 +132,11 @@ namespace BBCoders.Example.DataServices
 				WHERE `s`.`ScheduleId` = @__Value_0";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetSheduleRequestModel.id);
-                GetSheduleResponseModel result = null;
+                System.Collections.Generic.List<GetSheduleResponseModel> results = new System.Collections.Generic.List<GetSheduleResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    result = new GetSheduleResponseModel();
+                    GetSheduleResponseModel result = new GetSheduleResponseModel();
                     result.ScheduleId = (Int64)reader[0];
                     result.ScheduleActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
                     result.ScheduleCreatedById = (Int64)reader[2];
@@ -127,12 +151,13 @@ namespace BBCoders.Example.DataServices
                     result.ScheduleSiteIsActive = (Boolean)reader[11];
                     result.ScheduleSiteName = (String)reader[12];
                     result.ScheduleSiteScheduleSiteId = (Byte[])reader[13];
+                    results.Add(result);
                 }
                 reader.Close();
-                return result;
+                return results;
             }
         }
-        public async Task<GetScheduleActionAndLocationResponseModel> GetScheduleActionAndLocation(GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel)
+        public async Task<System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel>> GetScheduleActionAndLocation(GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
@@ -145,11 +170,11 @@ namespace BBCoders.Example.DataServices
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetScheduleActionAndLocationRequestModel.ActionId);
                 cmd.Parameters.AddWithValue("@__Value_1", GetScheduleActionAndLocationRequestModel.LocationId);
-                GetScheduleActionAndLocationResponseModel result = null;
+                System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel> results = new System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    result = new GetScheduleActionAndLocationResponseModel();
+                    GetScheduleActionAndLocationResponseModel result = new GetScheduleActionAndLocationResponseModel();
                     result.ScheduleId = (Int64)reader[0];
                     result.ScheduleActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
                     result.ScheduleCreatedById = (Int64)reader[2];
@@ -167,9 +192,10 @@ namespace BBCoders.Example.DataServices
                     result.ScheduleSiteIsActive = (Boolean)reader[14];
                     result.ScheduleSiteName = (String)reader[15];
                     result.ScheduleSiteScheduleSiteId = (Byte[])reader[16];
+                    results.Add(result);
                 }
                 reader.Close();
-                return result;
+                return results;
             }
         }
     }

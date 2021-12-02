@@ -55,7 +55,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";
             var responseModelName = name + "ResponseModel";
-            builder.AppendLine($"public async Task<{responseModelName}> {name}({requestModelName} {requestModelName})");
+            builder.AppendLine($"public async Task<System.Collections.Generic.List<{responseModelName}>> {name}({requestModelName} {requestModelName})");
             builder.AppendLine("{");
             using (builder.Indent())
             {
@@ -80,13 +80,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                             builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {requestModelName}.{property.Value});");
                         }
                     }
-                    builder.AppendLine($"{responseModelName} result = null;");
+                    builder.AppendLine($"System.Collections.Generic.List<{responseModelName}> results = new System.Collections.Generic.List<{responseModelName}>();");
                     builder.AppendLine("var reader = await cmd.ExecuteReaderAsync();");
                     builder.AppendLine("while (await reader.ReadAsync())");
                     builder.AppendLine("{");
                     using (builder.Indent())
                     {
-                        builder.AppendLine($"result = new {responseModelName}();");
+                        builder.AppendLine($"{responseModelName} result = new {responseModelName}();");
                         for (var i = 0; i < customSqlModel.Projections.Count; i++)
                         {
                             var property = customSqlModel.Projections[i];
@@ -96,10 +96,11 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                                 builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");
                             builder.AppendLine($"({type})reader[{i}];");
                         }
+                        builder.AppendLine("results.Add(result);");
                     }
                     builder.AppendLine("}");
                     builder.AppendLine("reader.Close();");
-                    builder.AppendLine("return result;");
+                    builder.AppendLine("return results;");
                 }
                 builder.AppendLine("}");
             }

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using BBCoders.Example.DataServices;
@@ -9,12 +10,12 @@ namespace BBCoders.Commons.Tools.IntegrationTests
 {
     public class QueryGeneratorTests
     {
-        public static readonly string TestCurrentDirectory =  Directory.GetCurrentDirectory();
+        public static readonly string TestCurrentDirectory = Directory.GetCurrentDirectory();
 
         [Fact]
         public void ValidateGenerateFiles()
         {
-            var test = new ScheduleSiteConfiguration().GetQueryOptions(); 
+            var test = new ScheduleSiteConfiguration().GetQueryOptions();
 
             // assert files are generated
             Assert.True(Directory.Exists(test.OutputDirectory));
@@ -106,7 +107,9 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 ScheduleSiteId = Guid.NewGuid().ToByteArray()
             };
             await repository.InsertScheduleSite(scheduleSiteModel);
-            var getScheduleSiteStatus = await repository.GetSheduleSiteStatus(new GetSheduleSiteStatusRequestModel() { id = scheduleSiteModel.ScheduleSiteId });
+            var getScheduleSiteStatuses = await repository.GetSheduleSiteStatus(new GetSheduleSiteStatusRequestModel() { id = scheduleSiteModel.ScheduleSiteId });
+            Assert.Equal(1, getScheduleSiteStatuses.Count);
+            var getScheduleSiteStatus = getScheduleSiteStatuses.First();
             Assert.Equal(scheduleSiteModel.Id, getScheduleSiteStatus.ScheduleSiteId);
             Assert.Equal(scheduleSiteModel.Name, getScheduleSiteStatus.ScheduleSiteName);
             Assert.Equal(scheduleSiteModel.IsActive, getScheduleSiteStatus.ScheduleSiteIsActive);
@@ -130,7 +133,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             await repository.InsertScheduleSite(scheduleSiteModel);
 
             var actionRepository = new ActionRepository(TestContextDesignTimeBuilder.ConnectionString);
-            var actionModel = await actionRepository.InsertAction(new ActionModel() {
+            var actionModel = await actionRepository.InsertAction(new ActionModel()
+            {
                 ActionId = Guid.NewGuid().ToByteArray(),
                 Name = "test"
             });
@@ -152,7 +156,9 @@ namespace BBCoders.Commons.Tools.IntegrationTests
 
             Assert.NotNull(schedule.Id);
 
-            var customModel = await scheduleRepository.GetShedule(new GetSheduleRequestModel() { id = schedule.ScheduleId });
+            var customModels = await scheduleRepository.GetShedule(new GetSheduleRequestModel() { id = schedule.ScheduleId });
+            Assert.Equal(1, customModels.Count);
+            var customModel = customModels.First();
             Assert.Equal(customModel.ScheduleSiteName, scheduleSiteModel.Name);
             Assert.Equal(customModel.ScheduleSiteId, scheduleSiteModel.Id);
             Assert.Equal(customModel.ScheduleSiteIsActive, scheduleSiteModel.IsActive);
@@ -168,7 +174,46 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             Assert.Equal(customModel.ScheduleScheduleId, schedule.ScheduleId);
             Assert.Equal(customModel.ScheduleScheduleSiteId, schedule.ScheduleSiteId);
 
+            var anotherSchedule = new ScheduleModel()
+            {
+                ScheduleId = Guid.NewGuid().ToByteArray(),
+                CreatedById = 1,
+                CreatedDate = DateTime.Today,
+                LastUpdatedById = 1,
+                LastUpdatedDate = DateTime.Today,
+                ScheduleSiteId = scheduleSiteModel.Id,
+                ScheduleDate = DateTime.Today,
+                ActionId = actionModel.Id
+            };
+            await scheduleRepository.InsertSchedule(anotherSchedule);
+            var getScheduleActionAndLocations = await scheduleRepository.GetScheduleActionAndLocation(new GetScheduleActionAndLocationRequestModel()
+            {
+                ActionId = actionModel.ActionId,
+                LocationId = scheduleSiteModel.ScheduleSiteId
+            });
+            Assert.Equal(2, getScheduleActionAndLocations.Count);
+            var getScheduleActionAndLocation = getScheduleActionAndLocations.First();
+            Assert.Equal(getScheduleActionAndLocation.ScheduleSiteName, scheduleSiteModel.Name);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleSiteId, scheduleSiteModel.Id);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleSiteIsActive, scheduleSiteModel.IsActive);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleSiteScheduleSiteId, scheduleSiteModel.ScheduleSiteId);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleId, schedule.Id);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleActionId, schedule.ActionId);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleCreatedById, schedule.CreatedById);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleCreatedDate, schedule.CreatedDate);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleFingerPrintId, schedule.FingerPrintId);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleLastUpdatedById, schedule.LastUpdatedById);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleLastUpdatedDate, schedule.LastUpdatedDate);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleScheduleDate, schedule.ScheduleDate);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleScheduleId, schedule.ScheduleId);
+            Assert.Equal(getScheduleActionAndLocation.ScheduleScheduleSiteId, schedule.ScheduleSiteId);
+            Assert.Equal(getScheduleActionAndLocation.ActionId, actionModel.Id);
+            Assert.Equal(getScheduleActionAndLocation.ActionName, actionModel.Name);
+            Assert.Equal(getScheduleActionAndLocation.ActionActionId, actionModel.ActionId);
+
+
             await scheduleRepository.DeleteSchedule(schedule.Id);
+            await scheduleRepository.DeleteSchedule(anotherSchedule.Id);
             await repository.DeleteScheduleSite(scheduleSiteModel.Id);
             await actionRepository.DeleteAction(actionModel.Id);
         }

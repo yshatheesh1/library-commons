@@ -22,6 +22,16 @@ namespace BBCoders.Example.DataServices
         public Byte[] ScheduleId { get; set; }
         public Int64 ScheduleSiteId { get; set; }
     }
+    public class GetSheduleActionRequestModel
+    {
+        public Byte[] id { get; set; }
+    }
+    public class GetSheduleActionResponseModel
+    {
+        public Int64? Scheduleaction { get; set; }
+        public Int64 Scheduleid { get; set; }
+        public Byte[] Scheduleschedule_id { get; set; }
+    }
     public class GetSheduleRequestModel
     {
         public Byte[] id { get; set; }

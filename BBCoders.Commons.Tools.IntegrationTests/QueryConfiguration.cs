@@ -81,10 +81,11 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
             queryOperations.Add<Schedule>();
+            queryOperations.Add<Guid>("GetSheduleAction", (id) => context.Schedules.Include(x => x.scheduleSite).Where(x => x.ScheduleId == id).Select(x => new { action = x.ActionId, id = x.Id, schedule_id = x.ScheduleId }));
             queryOperations.Add<Guid>("GetShedule", (id) => context.Schedules.Include(x => x.scheduleSite).Where(x => x.ScheduleId == id));
             queryOperations.Add<Guid, Guid>("GetScheduleActionAndLocation", (ActionId, LocationId) =>
-                context.Schedules.Join(context.Actions, schedule => schedule.ActionId, action => action.Id, (schedule, action) => new {schedule, action})
-                .Join(context.ScheduleSites, schedule_action => schedule_action.schedule.ScheduleSiteId, schedulesite => schedulesite.Id, (schedule_action, schedulesite) => new {schedule_action, schedulesite})
+                context.Schedules.Join(context.Actions, schedule => schedule.ActionId, action => action.Id, (schedule, action) => new { schedule, action })
+                .Join(context.ScheduleSites, schedule_action => schedule_action.schedule.ScheduleSiteId, schedulesite => schedulesite.Id, (schedule_action, schedulesite) => new { schedule_action, schedulesite })
                 .Where(x => x.schedule_action.action.ActionId == ActionId && x.schedulesite.ScheduleSiteId == LocationId));
         }
 

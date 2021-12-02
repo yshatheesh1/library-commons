@@ -79,7 +79,7 @@ namespace BBCoders.Example.DataServices
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<GetSheduleSiteStatusResponseModel> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
+        public async Task<System.Collections.Generic.List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
         {
             using(var connection = new MySqlConnection(_connectionString))
             {
@@ -89,18 +89,19 @@ namespace BBCoders.Example.DataServices
 				WHERE `s`.`ScheduleSiteId` = @__Value_0";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetSheduleSiteStatusRequestModel.id);
-                GetSheduleSiteStatusResponseModel result = null;
+                System.Collections.Generic.List<GetSheduleSiteStatusResponseModel> results = new System.Collections.Generic.List<GetSheduleSiteStatusResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    result = new GetSheduleSiteStatusResponseModel();
+                    GetSheduleSiteStatusResponseModel result = new GetSheduleSiteStatusResponseModel();
                     result.ScheduleSiteId = (Int64)reader[0];
                     result.ScheduleSiteIsActive = (Boolean)reader[1];
                     result.ScheduleSiteName = (String)reader[2];
                     result.ScheduleSiteScheduleSiteId = (Byte[])reader[3];
+                    results.Add(result);
                 }
                 reader.Close();
-                return result;
+                return results;
             }
         }
     }
