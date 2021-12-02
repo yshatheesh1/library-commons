@@ -1,6 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using Microsoft.EntityFrameworkCore;
@@ -80,6 +82,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         {
             queryOperations.Add<Schedule>();
             queryOperations.Add<Guid>("GetShedule", (id) => context.Schedules.Include(x => x.scheduleSite).Where(x => x.ScheduleId == id));
+            queryOperations.Add<Guid, Guid>("GetScheduleActionAndLocation", (ActionId, LocationId) =>
+                context.Schedules.Join(context.Actions, schedule => schedule.ActionId, action => action.Id, (schedule, action) => new {schedule, action})
+                .Join(context.ScheduleSites, schedule_action => schedule_action.schedule.ScheduleSiteId, schedulesite => schedulesite.Id, (schedule_action, schedulesite) => new {schedule_action, schedulesite})
+                .Where(x => x.schedule_action.action.ActionId == ActionId && x.schedulesite.ScheduleSiteId == LocationId));
         }
 
         public QueryOptions GetQueryOptions()

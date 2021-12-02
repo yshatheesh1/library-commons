@@ -9,7 +9,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
 {
     public class QueryGeneratorTests
     {
-        public static readonly string TestCurrentDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
+        public static readonly string TestCurrentDirectory =  Directory.GetCurrentDirectory();
 
         [Fact]
         public void ValidateGenerateFiles()

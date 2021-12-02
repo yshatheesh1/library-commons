@@ -43,4 +43,29 @@ namespace BBCoders.Example.DataServices
         public String ScheduleSiteName { get; set; }
         public Byte[] ScheduleSiteScheduleSiteId { get; set; }
     }
+    public class GetScheduleActionAndLocationRequestModel
+    {
+        public Byte[] ActionId { get; set; }
+        public Byte[] LocationId { get; set; }
+    }
+    public class GetScheduleActionAndLocationResponseModel
+    {
+        public Int64 ScheduleId { get; set; }
+        public Int64? ScheduleActionId { get; set; }
+        public Int64 ScheduleCreatedById { get; set; }
+        public DateTime ScheduleCreatedDate { get; set; }
+        public Int64? ScheduleFingerPrintId { get; set; }
+        public Int64 ScheduleLastUpdatedById { get; set; }
+        public DateTime ScheduleLastUpdatedDate { get; set; }
+        public DateTime ScheduleScheduleDate { get; set; }
+        public Byte[] ScheduleScheduleId { get; set; }
+        public Int64 ScheduleScheduleSiteId { get; set; }
+        public Int64 ActionId { get; set; }
+        public Byte[] ActionActionId { get; set; }
+        public String ActionName { get; set; }
+        public Int64 ScheduleSiteId { get; set; }
+        public Boolean ScheduleSiteIsActive { get; set; }
+        public String ScheduleSiteName { get; set; }
+        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+    }
 }

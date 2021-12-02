@@ -132,5 +132,45 @@ namespace BBCoders.Example.DataServices
                 return result;
             }
         }
+        public async Task<GetScheduleActionAndLocationResponseModel> GetScheduleActionAndLocation(GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel)
+        {
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `a`.`Id`, `a`.`ActionId`, `a`.`Name`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
+				FROM `Schedules` AS `s`
+				INNER JOIN `Actions` AS `a` ON `s`.`ActionId` = `a`.`Id`
+				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
+				WHERE (`a`.`ActionId` = @__Value_0) AND (`s0`.`ScheduleSiteId` = @__Value_1)";
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@__Value_0", GetScheduleActionAndLocationRequestModel.ActionId);
+                cmd.Parameters.AddWithValue("@__Value_1", GetScheduleActionAndLocationRequestModel.LocationId);
+                GetScheduleActionAndLocationResponseModel result = null;
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    result = new GetScheduleActionAndLocationResponseModel();
+                    result.ScheduleId = (Int64)reader[0];
+                    result.ScheduleActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                    result.ScheduleCreatedById = (Int64)reader[2];
+                    result.ScheduleCreatedDate = (DateTime)reader[3];
+                    result.ScheduleFingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                    result.ScheduleLastUpdatedById = (Int64)reader[5];
+                    result.ScheduleLastUpdatedDate = (DateTime)reader[6];
+                    result.ScheduleScheduleDate = (DateTime)reader[7];
+                    result.ScheduleScheduleId = (Byte[])reader[8];
+                    result.ScheduleScheduleSiteId = (Int64)reader[9];
+                    result.ActionId = (Int64)reader[10];
+                    result.ActionActionId = (Byte[])reader[11];
+                    result.ActionName = (String)reader[12];
+                    result.ScheduleSiteId = (Int64)reader[13];
+                    result.ScheduleSiteIsActive = (Boolean)reader[14];
+                    result.ScheduleSiteName = (String)reader[15];
+                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[16];
+                }
+                reader.Close();
+                return result;
+            }
+        }
     }
 }

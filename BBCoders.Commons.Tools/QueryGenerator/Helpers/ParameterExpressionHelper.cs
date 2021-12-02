@@ -16,9 +16,8 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Helpers
             for (var i = 0; i < parameters.Count; i++)
             {
                 var parameter = parameters[i];
-                var m = trimmedExpression.IndexOf(parameter.Name);
-
-                if (m != -1 && (m == 0 || trimmedCharExpression[m - 1] != '.'))
+                var m = IndexOf(trimmedExpression, parameter.Name);
+                if (m != -1)
                 {
                     sortedParameters.Add(m, parameter);
                 }
@@ -27,7 +26,17 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Helpers
             }
             return (sortedParameters, bindings);
         }
-        
+
+        private static int IndexOf(string str, string value)
+        {
+            for (int index = 0; ; index += value.Length)
+            {
+                index = str.IndexOf(value, index);
+                if (index == -1 || (index == 0 || str[index - 1] != '.'))
+                    return index;
+            }
+        }
+
         private static object RandomValue(Type type)
         {
             object value = null;
