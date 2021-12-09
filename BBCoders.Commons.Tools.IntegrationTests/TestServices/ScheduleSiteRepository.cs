@@ -79,6 +79,31 @@ namespace BBCoders.Example.DataServices
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
+        public async Task<System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel>> GetScheduleSitesByLocation(GetScheduleSitesByLocationRequestModel GetScheduleSitesByLocationRequestModel)
+        {
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
+				FROM `ScheduleSites` AS `s`
+				WHERE `s`.`Name` LIKE @__Format_1";
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@__Format_1", GetScheduleSitesByLocationRequestModel.location);
+                System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel> results = new System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetScheduleSitesByLocationResponseModel result = new GetScheduleSitesByLocationResponseModel();
+                    result.ScheduleSiteId = (Int64)reader[0];
+                    result.ScheduleSiteIsActive = (Boolean)reader[1];
+                    result.ScheduleSiteName = (String)reader[2];
+                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[3];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
         public async Task<System.Collections.Generic.List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
         {
             using(var connection = new MySqlConnection(_connectionString))

@@ -16,6 +16,17 @@ namespace BBCoders.Example.DataServices
         public String Name { get; set; }
         public Byte[] ScheduleSiteId { get; set; }
     }
+    public class GetScheduleSitesByLocationRequestModel
+    {
+        public String location { get; set; }
+    }
+    public class GetScheduleSitesByLocationResponseModel
+    {
+        public Int64 ScheduleSiteId { get; set; }
+        public Boolean ScheduleSiteIsActive { get; set; }
+        public String ScheduleSiteName { get; set; }
+        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+    }
     public class GetSheduleSiteStatusRequestModel
     {
         public Byte[] id { get; set; }

@@ -15,6 +15,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
             queryOperations.Add<ScheduleSite>();
+            queryOperations.Add<string>("GetScheduleSitesByLocation", (location) => context.ScheduleSites.Where(x => EF.Functions.Like(x.Name, $"%{location}%")));
             queryOperations.Add<Guid>("GetSheduleSiteStatus", (id) => context.ScheduleSites.Where(x => x.ScheduleSiteId == id));
         }
 
@@ -123,7 +124,6 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                     ModelFileName = "ActionModel"
                 };
             }
-
         }
     }
 }
