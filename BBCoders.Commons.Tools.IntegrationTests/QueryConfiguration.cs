@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -38,6 +40,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
             queryOperations.Add<Fingerprint>();
+            while(!Debugger.IsAttached){
+                Thread.Sleep(300);
+            }
+            queryOperations.Add<List<Guid>>("hello", (test) => context.Fingerprints.Where(x => test.Contains(x.FingerprintId)));
         }
 
         public QueryOptions GetQueryOptions()

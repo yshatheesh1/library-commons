@@ -1,6 +1,4 @@
-using System.Globalization;
-using System.Linq;
-using BBCoders.Commons.QueryConfiguration;
+using System.Text.RegularExpressions;
 using BBCoders.Commons.Tools.QueryGenerator.Models;
 using Humanizer;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -26,13 +24,18 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             builder.AppendLine("{");
             using (builder.Indent())
             {
-                foreach (var parameter in customSqlModel.Bindings)
+                foreach (var parameter in customSqlModel.EqualBindings)
                 {
                     if (!parameter.hasDefault)
                     {
-                        builder.Append($"public {parameter.Type} {parameter.Value}")
+                        builder.Append($"public {parameter.Type} {parameter.Name}")
                                 .AppendLine(" { get; set; }");
                     }
+                }
+                foreach (var parameter in customSqlModel.InBindings)
+                {
+                    builder.Append($"public {parameter.Type} {parameter.Name}")
+                            .AppendLine(" { get; set; }");
                 }
             }
             builder.AppendLine("}");
@@ -55,21 +58,23 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             var name = PascalCase(customSqlModel.MethodName);
             var requestModelName = name + "RequestModel";
             var responseModelName = name + "ResponseModel";
-            builder.AppendLine($"public async Task<System.Collections.Generic.List<{responseModelName}>> {name}({requestModelName} {requestModelName})");
+            builder.AppendLine($"public async Task<List<{responseModelName}>> {name}({requestModelName} {requestModelName})");
             builder.AppendLine("{");
             using (builder.Indent())
             {
-                // method implementation
+                foreach (var property in customSqlModel.InBindings)
+                {
+                    var propertyName = $"{property.Name.Pluralize()}Joined";
+                    builder.AppendLine($"var {propertyName} = string.Join(\",\", {requestModelName}?.{property.Name}.Select((x,y) => \"@{property.Name}\" + y.ToString()).ToArray());");
+                }
+                GenerateSql(builder);
                 builder.AppendLine($"using(var connection = new MySqlConnection({connectionString}))");
                 builder.AppendLine("{");
                 using (builder.Indent())
                 {
                     builder.AppendLine("await connection.OpenAsync();");
-                    builder.Append("string sql = @\"");
-                    GenerateSql(builder);
-                    builder.AppendLine("\";");
                     builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
-                    foreach (var property in customSqlModel.Bindings)
+                    foreach (var property in customSqlModel.EqualBindings)
                     {
                         if (property.hasDefault)
                         {
@@ -80,7 +85,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                             builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {requestModelName}.{property.Value});");
                         }
                     }
-                    builder.AppendLine($"System.Collections.Generic.List<{responseModelName}> results = new System.Collections.Generic.List<{responseModelName}>();");
+                    foreach (var property in customSqlModel.InBindings)
+                    {
+                        var propertyName = $"{property.Name.Pluralize()}Parameters";
+                        builder.AppendLine($"var {propertyName} = {requestModelName}?.{property.Name}.Select((x,y) => new MySqlParameter(\"@{property.Name}\" + y.ToString(), x)).ToArray();");
+                        builder.AppendLine($"cmd.Parameters.AddRange({propertyName});");
+                    }
+                    builder.AppendLine($"List<{responseModelName}> results = new List<{responseModelName}>();");
                     builder.AppendLine("var reader = await cmd.ExecuteReaderAsync();");
                     builder.AppendLine("while (await reader.ReadAsync())");
                     builder.AppendLine("{");
@@ -113,7 +124,21 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
 
         public void GenerateSql(IndentedStringBuilder migrationCommandListBuilder)
         {
-            migrationCommandListBuilder.Append(customSqlModel.Sql.Replace("\n", "\n\t\t\t\t"));
+            var sql = customSqlModel.Sql.Replace("\n", "\n\t\t\t\t");
+            Regex rgx = new Regex(@"\s*IN\s*\(.*?\)");
+            int index = 0;
+            foreach (var property in customSqlModel.InBindings)
+            {
+                var propertyName = $"{property.Name.Pluralize()}Joined";
+                var match = rgx.Match(sql, index);
+                if (match.Success)
+                {
+                    var inClause = $" IN (\" + {propertyName} + \")";
+                    sql = sql.Replace(match.Value, inClause);
+                    index = match.Index + inClause.Length;
+                }
+            }
+            migrationCommandListBuilder.AppendLine($"string sql = @\"{sql}\";");
         }
     }
 

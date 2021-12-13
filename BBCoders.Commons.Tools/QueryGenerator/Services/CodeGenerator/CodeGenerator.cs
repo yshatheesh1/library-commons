@@ -52,6 +52,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
         {
             GenerateComment(builder);
             builder.AppendLine("using System;");
+            builder.AppendLine("using System.Collections.Generic;");
             builder.AppendLine();
             builder.AppendLine($"namespace {_queryOptions.PackageName}");
             builder.AppendLine("{");
@@ -86,6 +87,8 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
         {
             GenerateComment(builder);
             builder.AppendLine("using System;");
+            builder.AppendLine("using System.Linq;");
+            builder.AppendLine("using System.Collections.Generic;");
             builder.AppendLine("using System.Threading.Tasks;");
             builder.AppendLine("using MySqlConnector;");
             builder.AppendLine();

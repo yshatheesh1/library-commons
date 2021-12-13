@@ -44,9 +44,6 @@ namespace BBCoders.Commons.Tools.QueryGenerator
 
         public void Execute()
         {
-            // while(!Debugger.IsAttached) {
-            //     Thread.Sleep(100);
-            // }
             var type = typeof(IQueryConfiguration<>);
             var queryConfigurations = assembly.GetTypes().Where(x => !x.IsInterface &&
                 x.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == type.GetGenericTypeDefinition()));
@@ -98,16 +95,14 @@ namespace BBCoders.Commons.Tools.QueryGenerator
 
         public override void Add<T>(string name, List<ParameterExpression> inputParameters, Expression<T> expression)
         {
-            var customSqlModel = new SqlModel() { MethodName = name, Projections = new List<SqlProjection>(), Bindings = new List<SqlBinding>() };
-
+            var customSqlModel = new SqlModel(name);
             var parameters = ParameterExpressionHelper.GetParameters(expression.Body.ToString(), inputParameters);
             var func = expression.Compile();
-            var test = (IQueryable)func.GetType().GetMethod("Invoke").Invoke(func, parameters.Item2);
-            if (test.Provider.Execute<IEnumerable>(test.Expression) is IRelationalQueryingEnumerable queryingEnumerable)
+            var query = (IQueryable)func.GetType().GetMethod("Invoke").Invoke(func, parameters.Item2);
+            if (query.Provider.Execute<IEnumerable>(query.Expression) is IRelationalQueryingEnumerable queryingEnumerable)
             {
                 var command = queryingEnumerable.CreateDbCommand();
                 customSqlModel.Sql = command.CommandText;
-
                 var fieldInfos = queryingEnumerable.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
                 var queryCommandCache = fieldInfos.FirstOrDefault(x => x.Name.Equals("_relationalCommandCache") && x.FieldType == typeof(RelationalCommandCache));
                 if (queryCommandCache != null)
@@ -136,14 +131,15 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                         }
                     }
                 }
-                var sortedParameters = parameters.Item1.Values.ToArray();
+               var sortedParameters = parameters.Item1.Values.ToArray();
+                var equalParameters = sortedParameters.Where(x => !x.InExpression).ToList();
                 for (var i = 0; i < command.Parameters.Count; i++)
                 {
                     var parameter = command.Parameters[i];
-                    var bindingParameter = sortedParameters.Count() > i ? sortedParameters[i] : null;
+                    var bindingParameter = equalParameters.Count() > i ? equalParameters[i] : null;
                     if (bindingParameter == null)
                     {
-                        customSqlModel.Bindings.Add(new SqlBinding()
+                        customSqlModel.EqualBindings.Add(new SqlBinding()
                         {
                             Name = parameter.ParameterName,
                             hasDefault = true,
@@ -152,14 +148,25 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                     }
                     else
                     {
-                        var relMapping = relationalTypeMappingSource.GetMapping(bindingParameter.Type);
-                        customSqlModel.Bindings.Add(new SqlBinding()
+                        var relMapping = relationalTypeMappingSource.GetMapping(bindingParameter.Expression.Type);
+                        customSqlModel.EqualBindings.Add(new SqlBinding()
                         {
                             Name = parameter.ParameterName,
                             Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
-                            Value = bindingParameter.Name
+                            Value = bindingParameter.Expression.Name,
                         });
                     }
+                }
+                foreach (var binding in sortedParameters.Where(x => x.InExpression))
+                {
+                    var relMapping = relationalTypeMappingSource.GetMapping(binding.Expression.Type.GetGenericArguments()[0]);
+                    var type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name;
+                    customSqlModel.InBindings.Add(new SqlBinding()
+                    {
+                        Name = binding.Expression.Name,
+                        Type = $"List<{type}>",
+                        Value = binding.Expression.Name
+                    });
                 }
             }
             operationGenerators.Add(new CustomSqlOperationGenerator(customSqlModel));
