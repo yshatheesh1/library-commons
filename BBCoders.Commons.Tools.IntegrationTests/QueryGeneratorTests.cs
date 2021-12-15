@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -218,5 +219,51 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             await actionRepository.DeleteAction(actionModel.Id);
         }
 
+        [Fact]
+        public async Task TestCustomInQuery()
+        {
+            var stateRepository = new StateRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var state = new StateModel()
+            {
+                Name = "Test",
+                StateId = Guid.NewGuid().ToByteArray()
+            };
+            await stateRepository.InsertState(state);
+            Assert.NotNull(state.Id);
+            Assert.Equal(state.Name, "Test");
+            var repository = new FingerprintRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var fingerprintModel1 = new FingerprintModel()
+            {
+                CreatedById = 1,
+                FingerprintId = Guid.NewGuid().ToByteArray(),
+                IsActive = true,
+                LastUpdatedById = 1,
+                NmlsId = 123,
+                UpdatedDate = DateTime.Today,
+                CreatedDate = DateTime.Today,
+                StateId = state.Id
+            };
+            var fingerprintModel2 = new FingerprintModel()
+            {
+                CreatedById = 1,
+                FingerprintId = Guid.NewGuid().ToByteArray(),
+                IsActive = true,
+                LastUpdatedById = 1,
+                NmlsId = 123,
+                UpdatedDate = DateTime.Today,
+                CreatedDate = DateTime.Today,
+            StateId = state.Id
+            };
+            await repository.InsertFingerprint(fingerprintModel1);
+            await repository.InsertFingerprint(fingerprintModel2);
+
+            var response = await repository.GetFingerprintByGuids(new GetFingerprintByGuidsRequestModel()
+            {
+                test = new List<Byte[]>() { fingerprintModel1.FingerprintId, fingerprintModel2.FingerprintId }
+            });
+            Assert.Equal(2, response.Count);
+            await repository.DeleteFingerprint(fingerprintModel1.Id);
+            await repository.DeleteFingerprint(fingerprintModel2.Id);
+        }
     }
 }

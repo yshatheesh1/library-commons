@@ -29,9 +29,9 @@ namespace BBCoders.Commons.Tools
            {
                generate.Description = "generates code for queries if ef core project is found";
                generate.HelpOption("-?|-h|--help");
+               var _noBuild = generate.Option("--no-build", "Don't build the project. Intended to be used when the build is up-to-date.", CommandOptionType.NoValue);
                generate.OnExecute(() =>
                {
-                   var _noBuild = generate.Option("--no-build", "Don't build the project. Intended to be used when the build is up-to-date.", CommandOptionType.SingleValue);
                    var project = Project.FromFile();
                    if (!_noBuild.HasValue())
                    {

@@ -6,6 +6,8 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MySqlConnector;
 
@@ -79,17 +81,17 @@ namespace BBCoders.Example.DataServices
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel>> GetScheduleSitesByLocation(GetScheduleSitesByLocationRequestModel GetScheduleSitesByLocationRequestModel)
+        public async Task<List<GetScheduleSitesByLocationResponseModel>> GetScheduleSitesByLocation(GetScheduleSitesByLocationRequestModel GetScheduleSitesByLocationRequestModel)
         {
+            string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
+				FROM `ScheduleSites` AS `s`
+				WHERE `s`.`Name` LIKE @__Format_1";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
-				FROM `ScheduleSites` AS `s`
-				WHERE `s`.`Name` LIKE @__Format_1";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Format_1", GetScheduleSitesByLocationRequestModel.location);
-                System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel> results = new System.Collections.Generic.List<GetScheduleSitesByLocationResponseModel>();
+                List<GetScheduleSitesByLocationResponseModel> results = new List<GetScheduleSitesByLocationResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
@@ -104,17 +106,17 @@ namespace BBCoders.Example.DataServices
                 return results;
             }
         }
-        public async Task<System.Collections.Generic.List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
+        public async Task<List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
         {
+            string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
+				FROM `ScheduleSites` AS `s`
+				WHERE `s`.`ScheduleSiteId` = @__Value_0";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
-				FROM `ScheduleSites` AS `s`
-				WHERE `s`.`ScheduleSiteId` = @__Value_0";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetSheduleSiteStatusRequestModel.id);
-                System.Collections.Generic.List<GetSheduleSiteStatusResponseModel> results = new System.Collections.Generic.List<GetSheduleSiteStatusResponseModel>();
+                List<GetSheduleSiteStatusResponseModel> results = new List<GetSheduleSiteStatusResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {

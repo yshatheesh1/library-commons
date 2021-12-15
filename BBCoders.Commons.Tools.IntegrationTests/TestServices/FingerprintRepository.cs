@@ -6,6 +6,8 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MySqlConnector;
 
@@ -98,6 +100,108 @@ namespace BBCoders.Example.DataServices
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
                 return await cmd.ExecuteNonQueryAsync();
+            }
+        }
+        public async Task<List<GetFingerprintByGuidsResponseModel>> GetFingerprintByGuids(GetFingerprintByGuidsRequestModel GetFingerprintByGuidsRequestModel)
+        {
+            var testsJoined = string.Join(",", GetFingerprintByGuidsRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
+            string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`
+				FROM `Fingerprint` AS `f`
+				WHERE `f`.`FingerprintId` IN (" + testsJoined + ")";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var cmd = new MySqlCommand(sql, connection);
+                var testsParameters = GetFingerprintByGuidsRequestModel?.test.Select((x,y) => new MySqlParameter("@test" + y.ToString(), x)).ToArray();
+                cmd.Parameters.AddRange(testsParameters);
+                List<GetFingerprintByGuidsResponseModel> results = new List<GetFingerprintByGuidsResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetFingerprintByGuidsResponseModel result = new GetFingerprintByGuidsResponseModel();
+                    result.FingerprintId = (Int64)reader[0];
+                    result.FingerprintCreatedById = (Int64)reader[1];
+                    result.FingerprintCreatedDate = (DateTime)reader[2];
+                    result.FingerprintExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                    result.FingerprintFingerprintId = (Byte[])reader[4];
+                    result.FingerprintIsActive = (Boolean)reader[5];
+                    result.FingerprintLastUpdatedById = (Int64)reader[6];
+                    result.FingerprintNmlsId = (Int64)reader[7];
+                    result.FingerprintRenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                    result.FingerprintStateId = (Int64)reader[9];
+                    result.FingerprintUpdatedDate = (DateTime)reader[10];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
+        public async Task<List<GetFingerprintsByIdResponseModel>> GetFingerprintsById(GetFingerprintsByIdRequestModel GetFingerprintsByIdRequestModel)
+        {
+            var testsJoined = string.Join(",", GetFingerprintsByIdRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
+            string sql = @"SELECT `f`.`Id`, `f`.`FingerprintId`, `f`.`IsActive`
+				FROM `Fingerprint` AS `f`
+				WHERE `f`.`Id` IN (" + testsJoined + ")";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var cmd = new MySqlCommand(sql, connection);
+                var testsParameters = GetFingerprintsByIdRequestModel?.test.Select((x,y) => new MySqlParameter("@test" + y.ToString(), x)).ToArray();
+                cmd.Parameters.AddRange(testsParameters);
+                List<GetFingerprintsByIdResponseModel> results = new List<GetFingerprintsByIdResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetFingerprintsByIdResponseModel result = new GetFingerprintsByIdResponseModel();
+                    result.FingerprintId = (Int64)reader[0];
+                    result.FingerprintFingerprintId = (Byte[])reader[1];
+                    result.FingerprintIsActive = (Boolean)reader[2];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
+        public async Task<List<GetFingerprintByStateIdResponseModel>> GetFingerprintByStateId(GetFingerprintByStateIdRequestModel GetFingerprintByStateIdRequestModel)
+        {
+            var fingerprintIdsJoined = string.Join(",", GetFingerprintByStateIdRequestModel?.fingerprintId.Select((x,y) => "@fingerprintId" + y.ToString()).ToArray());
+            var stateIdsJoined = string.Join(",", GetFingerprintByStateIdRequestModel?.stateId.Select((x,y) => "@stateId" + y.ToString()).ToArray());
+            string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`, `s`.`Id`, `s`.`Name`, `s`.`StateId`
+				FROM `Fingerprint` AS `f`
+				INNER JOIN `States` AS `s` ON `f`.`StateId` = `s`.`Id`
+				WHERE (`f`.`FingerprintId` IN (" + stateIdsJoined + ") AND (`f`.`IsActive` = @__Value_1)) AND `s`.`StateId` IN (" + stateIdsJoined + ")";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@__Value_1", GetFingerprintByStateIdRequestModel.active);
+                var fingerprintIdsParameters = GetFingerprintByStateIdRequestModel?.fingerprintId.Select((x,y) => new MySqlParameter("@fingerprintId" + y.ToString(), x)).ToArray();
+                cmd.Parameters.AddRange(fingerprintIdsParameters);
+                var stateIdsParameters = GetFingerprintByStateIdRequestModel?.stateId.Select((x,y) => new MySqlParameter("@stateId" + y.ToString(), x)).ToArray();
+                cmd.Parameters.AddRange(stateIdsParameters);
+                List<GetFingerprintByStateIdResponseModel> results = new List<GetFingerprintByStateIdResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetFingerprintByStateIdResponseModel result = new GetFingerprintByStateIdResponseModel();
+                    result.FingerprintId = (Int64)reader[0];
+                    result.FingerprintCreatedById = (Int64)reader[1];
+                    result.FingerprintCreatedDate = (DateTime)reader[2];
+                    result.FingerprintExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                    result.FingerprintFingerprintId = (Byte[])reader[4];
+                    result.FingerprintIsActive = (Boolean)reader[5];
+                    result.FingerprintLastUpdatedById = (Int64)reader[6];
+                    result.FingerprintNmlsId = (Int64)reader[7];
+                    result.FingerprintRenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                    result.FingerprintStateId = (Int64)reader[9];
+                    result.FingerprintUpdatedDate = (DateTime)reader[10];
+                    result.StateId = (Int64)reader[11];
+                    result.StateName = Convert.IsDBNull(reader[12]) ? null : (String?)reader[12];
+                    result.StateStateId = (Byte[])reader[13];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
             }
         }
     }

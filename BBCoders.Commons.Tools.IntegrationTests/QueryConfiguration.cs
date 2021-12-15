@@ -8,6 +8,7 @@ using System.Threading;
 using BBCoders.Commons.QueryConfiguration;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Scaffolding.Metadata;
 using Action = BBCoders.Commons.Tools.IntegrationTests.Context.Action;
 
 namespace BBCoders.Commons.Tools.IntegrationTests
@@ -40,10 +41,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         public void CreateQuery(TestContext context, QueryOperations queryOperations)
         {
             queryOperations.Add<Fingerprint>();
-            while(!Debugger.IsAttached){
-                Thread.Sleep(300);
-            }
-            queryOperations.Add<List<Guid>>("hello", (test) => context.Fingerprints.Where(x => test.Contains(x.FingerprintId)));
+            queryOperations.Add<List<Guid>>("GetFingerprintByGuids", (test) => context.Fingerprints.Where(x => test.Contains(x.FingerprintId)));
+            queryOperations.Add<List<long>>("GetFingerprintsById", (test) => context.Fingerprints.Where(x => test.Contains(x.Id)).Select(x => new {Id = x.Id, FingerprintId = x.FingerprintId, IsActive = x.IsActive}));
+            queryOperations.Add<List<Guid>, Boolean, List<Guid>>("GetFingerprintByStateId", (fingerprintId, active, stateId) => 
+            context.Fingerprints.Include(x => x.State).Where(x => fingerprintId.Contains(x.FingerprintId) && x.IsActive == active && stateId.Contains(x.State.StateId)));
         }
 
         public QueryOptions GetQueryOptions()

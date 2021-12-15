@@ -28,13 +28,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                 {
                     if (!parameter.hasDefault)
                     {
-                        builder.Append($"public {parameter.Type} {parameter.Name}")
+                        builder.Append($"public {parameter.Type} {parameter.Value}")
                                 .AppendLine(" { get; set; }");
                     }
                 }
                 foreach (var parameter in customSqlModel.InBindings)
                 {
-                    builder.Append($"public {parameter.Type} {parameter.Name}")
+                    builder.Append($"public {parameter.Type} {parameter.Value}")
                             .AppendLine(" { get; set; }");
                 }
             }

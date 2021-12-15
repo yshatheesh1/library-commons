@@ -6,6 +6,8 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MySqlConnector;
 
@@ -97,17 +99,17 @@ namespace BBCoders.Example.DataServices
                 return await cmd.ExecuteNonQueryAsync();
             }
         }
-        public async Task<System.Collections.Generic.List<GetSheduleActionResponseModel>> GetSheduleAction(GetSheduleActionRequestModel GetSheduleActionRequestModel)
+        public async Task<List<GetSheduleActionResponseModel>> GetSheduleAction(GetSheduleActionRequestModel GetSheduleActionRequestModel)
         {
+            string sql = @"SELECT `s`.`ActionId` AS `action`, `s`.`Id` AS `id`, `s`.`ScheduleId` AS `schedule_id`
+				FROM `Schedules` AS `s`
+				WHERE `s`.`ScheduleId` = @__Value_0";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
-                string sql = @"SELECT `s`.`ActionId` AS `action`, `s`.`Id` AS `id`, `s`.`ScheduleId` AS `schedule_id`
-				FROM `Schedules` AS `s`
-				WHERE `s`.`ScheduleId` = @__Value_0";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetSheduleActionRequestModel.id);
-                System.Collections.Generic.List<GetSheduleActionResponseModel> results = new System.Collections.Generic.List<GetSheduleActionResponseModel>();
+                List<GetSheduleActionResponseModel> results = new List<GetSheduleActionResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
@@ -121,18 +123,18 @@ namespace BBCoders.Example.DataServices
                 return results;
             }
         }
-        public async Task<System.Collections.Generic.List<GetSheduleResponseModel>> GetShedule(GetSheduleRequestModel GetSheduleRequestModel)
+        public async Task<List<GetSheduleResponseModel>> GetShedule(GetSheduleRequestModel GetSheduleRequestModel)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
+            string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
 				FROM `Schedules` AS `s`
 				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
 				WHERE `s`.`ScheduleId` = @__Value_0";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetSheduleRequestModel.id);
-                System.Collections.Generic.List<GetSheduleResponseModel> results = new System.Collections.Generic.List<GetSheduleResponseModel>();
+                List<GetSheduleResponseModel> results = new List<GetSheduleResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
@@ -157,20 +159,20 @@ namespace BBCoders.Example.DataServices
                 return results;
             }
         }
-        public async Task<System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel>> GetScheduleActionAndLocation(GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel)
+        public async Task<List<GetScheduleActionAndLocationResponseModel>> GetScheduleActionAndLocation(GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `a`.`Id`, `a`.`ActionId`, `a`.`Name`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
+            string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `a`.`Id`, `a`.`ActionId`, `a`.`Name`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
 				FROM `Schedules` AS `s`
 				INNER JOIN `Actions` AS `a` ON `s`.`ActionId` = `a`.`Id`
 				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
 				WHERE (`a`.`ActionId` = @__Value_0) AND (`s0`.`ScheduleSiteId` = @__Value_1)";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@__Value_0", GetScheduleActionAndLocationRequestModel.ActionId);
                 cmd.Parameters.AddWithValue("@__Value_1", GetScheduleActionAndLocationRequestModel.LocationId);
-                System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel> results = new System.Collections.Generic.List<GetScheduleActionAndLocationResponseModel>();
+                List<GetScheduleActionAndLocationResponseModel> results = new List<GetScheduleActionAndLocationResponseModel>();
                 var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {

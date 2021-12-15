@@ -6,6 +6,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 using System;
+using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
@@ -22,5 +23,56 @@ namespace BBCoders.Example.DataServices
         public DateTime? RenewalDate { get; set; }
         public Int64 StateId { get; set; }
         public DateTime UpdatedDate { get; set; }
+    }
+    public class GetFingerprintByGuidsRequestModel
+    {
+        public List<Byte[]> test { get; set; }
+    }
+    public class GetFingerprintByGuidsResponseModel
+    {
+        public Int64 FingerprintId { get; set; }
+        public Int64 FingerprintCreatedById { get; set; }
+        public DateTime FingerprintCreatedDate { get; set; }
+        public DateTime? FingerprintExpirationDate { get; set; }
+        public Byte[] FingerprintFingerprintId { get; set; }
+        public Boolean FingerprintIsActive { get; set; }
+        public Int64 FingerprintLastUpdatedById { get; set; }
+        public Int64 FingerprintNmlsId { get; set; }
+        public DateTime? FingerprintRenewalDate { get; set; }
+        public Int64 FingerprintStateId { get; set; }
+        public DateTime FingerprintUpdatedDate { get; set; }
+    }
+    public class GetFingerprintsByIdRequestModel
+    {
+        public List<Int64> test { get; set; }
+    }
+    public class GetFingerprintsByIdResponseModel
+    {
+        public Int64 FingerprintId { get; set; }
+        public Byte[] FingerprintFingerprintId { get; set; }
+        public Boolean FingerprintIsActive { get; set; }
+    }
+    public class GetFingerprintByStateIdRequestModel
+    {
+        public Boolean active { get; set; }
+        public List<Byte[]> fingerprintId { get; set; }
+        public List<Byte[]> stateId { get; set; }
+    }
+    public class GetFingerprintByStateIdResponseModel
+    {
+        public Int64 FingerprintId { get; set; }
+        public Int64 FingerprintCreatedById { get; set; }
+        public DateTime FingerprintCreatedDate { get; set; }
+        public DateTime? FingerprintExpirationDate { get; set; }
+        public Byte[] FingerprintFingerprintId { get; set; }
+        public Boolean FingerprintIsActive { get; set; }
+        public Int64 FingerprintLastUpdatedById { get; set; }
+        public Int64 FingerprintNmlsId { get; set; }
+        public DateTime? FingerprintRenewalDate { get; set; }
+        public Int64 FingerprintStateId { get; set; }
+        public DateTime FingerprintUpdatedDate { get; set; }
+        public Int64 StateId { get; set; }
+        public String? StateName { get; set; }
+        public Byte[] StateStateId { get; set; }
     }
 }

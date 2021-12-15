@@ -42,6 +42,9 @@ namespace BBCoders.Commons.Tools.QueryGenerator
             _servicesBuilder = new DesignTimeServicesBuilder(assembly, startupAssembly, reporter, designArgs);
         }
 
+        /// <summary>
+        /// execute all query configurations using reflection
+        /// </summary>
         public void Execute()
         {
             var type = typeof(IQueryConfiguration<>);
@@ -77,6 +80,10 @@ namespace BBCoders.Commons.Tools.QueryGenerator
             }
             codeGenerators.ForEach(x => x.Generate());
         }
+        /// <summary>
+        ///  adds default methods for a table
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
         public override void Add<T>()
         {
             var table = model?.Tables.FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
@@ -131,12 +138,13 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                         }
                     }
                 }
-               var sortedParameters = parameters.Item1.Values.ToArray();
+                var sortedParameters = parameters.Item1.Values.ToArray();
                 var equalParameters = sortedParameters.Where(x => !x.InExpression).ToList();
                 for (var i = 0; i < command.Parameters.Count; i++)
                 {
                     var parameter = command.Parameters[i];
                     var bindingParameter = equalParameters.Count() > i ? equalParameters[i] : null;
+                    // if user provides default value in the query, no user input is required
                     if (bindingParameter == null)
                     {
                         customSqlModel.EqualBindings.Add(new SqlBinding()
