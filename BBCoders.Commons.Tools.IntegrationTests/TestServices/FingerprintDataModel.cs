@@ -72,7 +72,7 @@ namespace BBCoders.Example.DataServices
         public Int64 FingerprintStateId { get; set; }
         public DateTime FingerprintUpdatedDate { get; set; }
         public Int64 StateId { get; set; }
-        public String? StateName { get; set; }
+        public String StateName { get; set; }
         public Byte[] StateStateId { get; set; }
     }
 }

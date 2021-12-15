@@ -29,11 +29,17 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             builder.AppendLine("}");
         }
 
-        protected void GetResultMethod(IndentedStringBuilder builder)
+        protected string GetResultSetMethodName()
+        {
+            var modelName = GetEntityName();
+            return $"Get{modelName}ResultSet";
+        }
+
+        protected void GetResultSetMethod(IndentedStringBuilder builder)
         {
             var modelName = getModelName();
             var properties = _table.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-            builder.AppendLine($"private async Task<{modelName}> GetResult(MySqlCommand cmd, {modelName} result = null)");
+            builder.AppendLine($"private async Task<{modelName}> {GetResultSetMethodName()}(MySqlCommand cmd, {modelName} result = null)");
             builder.AppendLine("{");
             using (builder.Indent())
             {

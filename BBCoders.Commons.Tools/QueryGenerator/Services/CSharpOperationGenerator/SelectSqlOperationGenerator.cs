@@ -44,14 +44,14 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                     {
                         builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{primaryKeyProperties[property].Name}\", {property.Name});");
                     }
-                    builder.AppendLine("return await GetResult(cmd);");
+                    builder.AppendLine($"return await {GetResultSetMethodName()}(cmd);");
                 }
                 builder.AppendLine("}");
             }
             builder.AppendLine("}");
 
             // generate Get Result method
-            GetResultMethod(builder);
+            GetResultSetMethod(builder);
         }
     }
 }

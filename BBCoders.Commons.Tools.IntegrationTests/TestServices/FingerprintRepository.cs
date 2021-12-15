@@ -25,10 +25,10 @@ namespace BBCoders.Example.DataServices
                 string sql = @"SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetResult(cmd);
+                return await GetFingerprintResultSet(cmd);
             }
         }
-        private async Task<FingerprintModel> GetResult(MySqlCommand cmd, FingerprintModel result = null)
+        private async Task<FingerprintModel> GetFingerprintResultSet(MySqlCommand cmd, FingerprintModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -67,7 +67,7 @@ namespace BBCoders.Example.DataServices
                 cmd.Parameters.AddWithValue("@RenewalDate", FingerprintModel.RenewalDate);
                 cmd.Parameters.AddWithValue("@StateId", FingerprintModel.StateId);
                 cmd.Parameters.AddWithValue("@UpdatedDate", FingerprintModel.UpdatedDate);
-                return await GetResult(cmd, FingerprintModel);
+                return await GetFingerprintResultSet(cmd, FingerprintModel);
             }
         }
         public async Task<int> UpdateFingerprint(FingerprintModel FingerprintModel)
@@ -107,7 +107,7 @@ namespace BBCoders.Example.DataServices
             var testsJoined = string.Join(",", GetFingerprintByGuidsRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
             string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`
 				FROM `Fingerprint` AS `f`
-				WHERE `f`.`FingerprintId` IN (" + testsJoined + ")";
+				WHERE `f`.`FingerprintId` IN (" + testsJoined + @")";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
@@ -141,7 +141,7 @@ namespace BBCoders.Example.DataServices
             var testsJoined = string.Join(",", GetFingerprintsByIdRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
             string sql = @"SELECT `f`.`Id`, `f`.`FingerprintId`, `f`.`IsActive`
 				FROM `Fingerprint` AS `f`
-				WHERE `f`.`Id` IN (" + testsJoined + ")";
+				WHERE `f`.`Id` IN (" + testsJoined + @")";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
@@ -169,7 +169,7 @@ namespace BBCoders.Example.DataServices
             string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`, `s`.`Id`, `s`.`Name`, `s`.`StateId`
 				FROM `Fingerprint` AS `f`
 				INNER JOIN `States` AS `s` ON `f`.`StateId` = `s`.`Id`
-				WHERE (`f`.`FingerprintId` IN (" + stateIdsJoined + ") AND (`f`.`IsActive` = @__Value_1)) AND `s`.`StateId` IN (" + stateIdsJoined + ")";
+				WHERE (`f`.`FingerprintId` IN (" + stateIdsJoined + @") AND (`f`.`IsActive` = @__Value_1)) AND `s`.`StateId` IN (" + stateIdsJoined + @")";
             using(var connection = new MySqlConnection(_connectionString))
             {
                 await connection.OpenAsync();
@@ -196,7 +196,7 @@ namespace BBCoders.Example.DataServices
                     result.FingerprintStateId = (Int64)reader[9];
                     result.FingerprintUpdatedDate = (DateTime)reader[10];
                     result.StateId = (Int64)reader[11];
-                    result.StateName = Convert.IsDBNull(reader[12]) ? null : (String?)reader[12];
+                    result.StateName = Convert.IsDBNull(reader[12]) ? null : (String)reader[12];
                     result.StateStateId = (Byte[])reader[13];
                     results.Add(result);
                 }

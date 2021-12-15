@@ -25,10 +25,10 @@ namespace BBCoders.Example.DataServices
                 string sql = @"SELECT * FROM `States` AS `s` WHERE `s`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetResult(cmd);
+                return await GetStateResultSet(cmd);
             }
         }
-        private async Task<StateModel> GetResult(MySqlCommand cmd, StateModel result = null)
+        private async Task<StateModel> GetStateResultSet(MySqlCommand cmd, StateModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -51,7 +51,7 @@ namespace BBCoders.Example.DataServices
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Name", StateModel.Name);
                 cmd.Parameters.AddWithValue("@StateId", StateModel.StateId);
-                return await GetResult(cmd, StateModel);
+                return await GetStateResultSet(cmd, StateModel);
             }
         }
         public async Task<int> UpdateState(StateModel StateModel)

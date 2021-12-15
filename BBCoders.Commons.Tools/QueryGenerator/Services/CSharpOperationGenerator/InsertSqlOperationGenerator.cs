@@ -63,7 +63,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                     {
                         builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {modelName}.{property.Name});");
                     }
-                    builder.AppendLine($"return await GetResult(cmd, {modelName});");
+                    builder.AppendLine($"return await {GetResultSetMethodName()}(cmd, {modelName});");
                 }
                 builder.AppendLine("}");
             }

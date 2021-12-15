@@ -25,10 +25,10 @@ namespace BBCoders.Example.DataServices
                 string sql = @"SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id";
                 var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetResult(cmd);
+                return await GetScheduleResultSet(cmd);
             }
         }
-        private async Task<ScheduleModel> GetResult(MySqlCommand cmd, ScheduleModel result = null)
+        private async Task<ScheduleModel> GetScheduleResultSet(MySqlCommand cmd, ScheduleModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -65,7 +65,7 @@ namespace BBCoders.Example.DataServices
                 cmd.Parameters.AddWithValue("@ScheduleDate", ScheduleModel.ScheduleDate);
                 cmd.Parameters.AddWithValue("@ScheduleId", ScheduleModel.ScheduleId);
                 cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleModel.ScheduleSiteId);
-                return await GetResult(cmd, ScheduleModel);
+                return await GetScheduleResultSet(cmd, ScheduleModel);
             }
         }
         public async Task<int> UpdateSchedule(ScheduleModel ScheduleModel)
