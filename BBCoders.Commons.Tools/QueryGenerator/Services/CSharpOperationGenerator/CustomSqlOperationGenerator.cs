@@ -46,8 +46,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
             {
                 foreach (var parameter in customSqlModel.Projections)
                 {
-                    var type = parameter.IsNullable && !parameter.Type.Equals("string", System.StringComparison.OrdinalIgnoreCase) ?
-                          parameter.Type + "?" : parameter.Type;
+                    var type = parameter.IsNullable && parameter.IsValueType ? parameter.Type + "?" : parameter.Type;
                     builder.Append($"public {type} {parameter.Name}")
                             .AppendLine(" { get; set; }");
                 }
@@ -102,8 +101,7 @@ namespace BBCoders.Commons.Tools.QueryGenerator.Services
                         for (var i = 0; i < customSqlModel.Projections.Count; i++)
                         {
                             var property = customSqlModel.Projections[i];
-                            var type = property.IsNullable && !property.Type.Equals("string", System.StringComparison.OrdinalIgnoreCase) ?
-                             property.Type + "?" : property.Type;
+                            var type = property.IsNullable && property.IsValueType ? property.Type + "?" : property.Type;
                             builder.Append($"result.{property.Name} = ");
                             if (property.IsNullable)
                                 builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");

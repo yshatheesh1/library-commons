@@ -105,41 +105,34 @@ namespace BBCoders.Commons.Tools.QueryGenerator
             var customSqlModel = new SqlModel(name);
             var parameters = ParameterExpressionHelper.GetParameters(expression.Body.ToString(), inputParameters);
             var func = expression.Compile();
-            var query = (IQueryable)func.GetType().GetMethod("Invoke").Invoke(func, parameters.Item2);
+            var bindingDefaultValues = parameters.Item2;
+            var bindingParameters = parameters.Item1.Values.ToArray();
+            var query = (IQueryable)func.GetType().GetMethod("Invoke").Invoke(func, bindingDefaultValues);
             if (query.Provider.Execute<IEnumerable>(query.Expression) is IRelationalQueryingEnumerable queryingEnumerable)
             {
-                var command = queryingEnumerable.CreateDbCommand();
-                customSqlModel.Sql = command.CommandText;
-                var fieldInfos = queryingEnumerable.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
-                var queryCommandCache = fieldInfos.FirstOrDefault(x => x.Name.Equals("_relationalCommandCache") && x.FieldType == typeof(RelationalCommandCache));
-                if (queryCommandCache != null)
+                var selectExpression = GetSelectExpression(queryingEnumerable);
+                foreach (var projection in selectExpression.Projection)
                 {
-                    var relationalCommandCache = (RelationalCommandCache)queryCommandCache.GetValue(queryingEnumerable);
-                    fieldInfos = relationalCommandCache.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
-                    var selectExpressionInfo = fieldInfos.FirstOrDefault(x => x.Name.Equals("_selectExpression") && x.FieldType == typeof(SelectExpression));
-                    var relationalParameterBasedSqlProcessorInfo = fieldInfos.FirstOrDefault(x => x.Name.Equals("_relationalParameterBasedSqlProcessor") && x.FieldType == typeof(RelationalParameterBasedSqlProcessor));
-                    if (selectExpressionInfo != null && relationalParameterBasedSqlProcessorInfo != null)
+                    var type = GetDbType(projection.Expression.TypeMapping);
+                    var sqlProjection = new SqlProjection()
                     {
-                        var relationalParameterBasedSqlProcessor = (RelationalParameterBasedSqlProcessor)relationalParameterBasedSqlProcessorInfo.GetValue(relationalCommandCache);
-                        var selectExpression = (SelectExpression)selectExpressionInfo.GetValue(relationalCommandCache);
-                        foreach (var projection in selectExpression.Projection)
+                        IsValueType = type.IsValueType,
+                        Name = projection.Alias,
+                        Type = type.Name,
+                    };
+                    if (projection.Expression is ColumnExpression columnExpression)
+                    {
+                        sqlProjection.IsNullable = columnExpression.IsNullable;
+                        if (columnExpression.Table is TableExpression tableExpression)
                         {
-                            var columnExpression = (ColumnExpression)projection.Expression;
-                            var tableExpression = (TableExpression)columnExpression.Table;
-                            var relMapping = columnExpression.TypeMapping;
-                            var sqlProjection = new SqlProjection()
-                            {
-                                IsNullable = columnExpression.IsNullable,
-                                Name = tableExpression.Name.Singularize() + projection.Alias,
-                                Value = projection.Alias,
-                                Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
-                            };
-                            customSqlModel.Projections.Add(sqlProjection);
+                            sqlProjection.Name = tableExpression.Name.Singularize() + projection.Alias;
                         }
                     }
+                    customSqlModel.Projections.Add(sqlProjection);
                 }
-                var sortedParameters = parameters.Item1.Values.ToArray();
-                var equalParameters = sortedParameters.Where(x => !x.InExpression).ToList();
+                var command = queryingEnumerable.CreateDbCommand();
+                customSqlModel.Sql = command.CommandText;
+                var equalParameters = bindingParameters.Where(x => !x.InExpression).ToList();
                 for (var i = 0; i < command.Parameters.Count; i++)
                 {
                     var parameter = command.Parameters[i];
@@ -156,28 +149,60 @@ namespace BBCoders.Commons.Tools.QueryGenerator
                     }
                     else
                     {
-                        var relMapping = relationalTypeMappingSource.GetMapping(bindingParameter.Expression.Type);
+                        var type = GetDbType(bindingParameter.Expression.Type);
                         customSqlModel.EqualBindings.Add(new SqlBinding()
                         {
                             Name = parameter.ParameterName,
-                            Type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name,
+                            Type = type.Name,
                             Value = bindingParameter.Expression.Name,
                         });
                     }
                 }
-                foreach (var binding in sortedParameters.Where(x => x.InExpression))
+                foreach (var binding in bindingParameters.Where(x => x.InExpression))
                 {
-                    var relMapping = relationalTypeMappingSource.GetMapping(binding.Expression.Type.GetGenericArguments()[0]);
-                    var type = relMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relMapping.DbType.Value).Name : relMapping.ClrType.Name;
+                    var type = GetDbType(binding.Expression.Type.GetGenericArguments()[0]);
                     customSqlModel.InBindings.Add(new SqlBinding()
                     {
                         Name = binding.Expression.Name,
-                        Type = $"List<{type}>",
+                        Type = $"List<{type.Name}>",
                         Value = binding.Expression.Name
                     });
                 }
             }
             operationGenerators.Add(new CustomSqlOperationGenerator(customSqlModel));
+        }
+
+        private Type GetDbType(Type type)
+        {
+            var relationalTypeMapping = relationalTypeMappingSource.GetMapping(type);
+            return GetDbType(relationalTypeMapping);
+        }
+
+        private Type GetDbType(RelationalTypeMapping relationalTypeMapping)
+        {
+            var type = relationalTypeMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relationalTypeMapping.DbType.Value) :
+                    relationalTypeMapping.ClrType;
+            return type;
+        }
+
+        private SelectExpression GetSelectExpression(IRelationalQueryingEnumerable relationalQueryingEnumerable)
+        {
+            var fieldInfos = relationalQueryingEnumerable.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+            var queryCommandCache = fieldInfos.FirstOrDefault(x => x.Name.Equals("_relationalCommandCache") && x.FieldType == typeof(RelationalCommandCache));
+            if (queryCommandCache != null)
+            {
+                var relationalCommandCache = (RelationalCommandCache)queryCommandCache.GetValue(relationalQueryingEnumerable);
+                fieldInfos = relationalCommandCache.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance);
+                var selectExpressionInfo = fieldInfos.FirstOrDefault(x => x.Name.Equals("_selectExpression") && x.FieldType == typeof(SelectExpression));
+                var relationalParameterBasedSqlProcessorInfo = fieldInfos.FirstOrDefault(x => x.Name.Equals("_relationalParameterBasedSqlProcessor") && x.FieldType == typeof(RelationalParameterBasedSqlProcessor));
+                if (selectExpressionInfo != null && relationalParameterBasedSqlProcessorInfo != null)
+                {
+                    var relationalParameterBasedSqlProcessor = (RelationalParameterBasedSqlProcessor)relationalParameterBasedSqlProcessorInfo.GetValue(relationalCommandCache);
+                    var selectExpression = (SelectExpression)selectExpressionInfo.GetValue(relationalCommandCache);
+                    return selectExpression;
+                }
+            }
+            return null;
         }
     }
 }
