@@ -100,10 +100,6 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 .Include(x => x.scheduleSite)
                 .Include(x => x.Fingerprint)
                 .Include(x => x.Fingerprint.State).Where(x => x.ScheduleId == id).Select(x => new { Id = x.Id, Test = x.CreatedById, StateActive = true, state = x.Fingerprint.State }));
-                            while (!Debugger.IsAttached)
-            {
-                Thread.Sleep(200);
-            }
             queryOperations.Add<Guid>("GetSheduleAsync2", (id) => 
             context.Schedules
                 .GroupBy(x => x.Id, (x, y)  =>  y.Count() ));
