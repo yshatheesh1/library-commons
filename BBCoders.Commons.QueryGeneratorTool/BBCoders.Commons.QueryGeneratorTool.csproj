@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Generates source files for queries</Description> 
+    <Version>0.1.7</Version>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>BBCoders.Commons.QueryGeneratorTool</RootNamespace>
+    <ToolCommandName>qgen</ToolCommandName>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.10">
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="5.0.10" />
+    <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj" />
+    <ProjectReference Include="..\BBCoders.Commons.Utilities\BBCoders.Commons.Utilities.csproj" />
+    <ProjectReference Include="..\BBCoders.Commons.Tools\BBCoders.Commons.Tools.csproj" />
+  </ItemGroup>
+
+</Project>

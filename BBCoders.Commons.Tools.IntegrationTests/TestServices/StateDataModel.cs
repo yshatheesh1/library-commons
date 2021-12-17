@@ -13,7 +13,7 @@ namespace BBCoders.Example.DataServices
     public class StateModel
     {
         public Int64 Id { get; set; }
-        public String? Name { get; set; }
+        public String Name { get; set; }
         public Byte[] StateId { get; set; }
     }
 }

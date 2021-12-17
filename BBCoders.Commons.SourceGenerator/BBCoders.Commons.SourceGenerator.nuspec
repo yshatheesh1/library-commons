@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+        <id>BBCoders.Commons.SourceGenerator</id>
+        <version>0.0.1</version>
+        <description>Base class to create design time source files.</description>
+        <authors>satheesh</authors>
+        <owners>satheesh</owners>
+        <requireLicenseAcceptance>true</requireLicenseAcceptance>
+        <license type="expression">MIT</license>
+        <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+        <copyright>Copyright 2020-2021</copyright>
+        <dependencies>
+          <group targetFramework="netstandard2.1" />
+        </dependencies>
+  </metadata>
+  <files>
+     <file src="bin\Release\netstandard2.1\BBCoders.Commons.SourceGenerator.dll" target="lib\netstandard2.1" />
+     <file src="bin\Release\netstandard2.1\BBCoders.Commons.SourceGenerator.xml" target="lib\netstandard2.1" />
+  </files>
+</package>

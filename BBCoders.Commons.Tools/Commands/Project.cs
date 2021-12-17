@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using BBCoders.Commons.Utilities;
-using Microsoft.Extensions.CommandLineUtils;
 
 namespace BBCoders.Commons.Tools
 {

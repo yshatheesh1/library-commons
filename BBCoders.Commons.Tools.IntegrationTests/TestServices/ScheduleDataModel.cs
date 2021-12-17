@@ -79,4 +79,24 @@ namespace BBCoders.Example.DataServices
         public String ScheduleSiteName { get; set; }
         public Byte[] ScheduleSiteScheduleSiteId { get; set; }
     }
+    public class GetSheduleAsyncRequestModel
+    {
+        public Byte[] id { get; set; }
+    }
+    public class GetSheduleAsyncResponseModel
+    {
+        public Int64 ScheduleId { get; set; }
+        public Int64 ScheduleTest { get; set; }
+        public Boolean StateActive { get; set; }
+        public Int64? StateId { get; set; }
+        public String StateName { get; set; }
+        public Byte[] StateStateId { get; set; }
+    }
+    public class GetSheduleAsync2RequestModel
+    {
+    }
+    public class GetSheduleAsync2ResponseModel
+    {
+        public Int32 Value_0 { get; set; }
+    }
 }

@@ -3,13 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.Tools", "BBCoders.Commons.Tools\BBCoders.Commons.Tools.csproj", "{FA2E3DD8-3A49-4805-8135-A895BCF53306}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.Utilities", "BBCoders.Commons.Utilities\BBCoders.Commons.Utilities.csproj", "{ADE54C23-2330-4712-A6A5-8443855A47F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.QueryConfiguration", "BBCoders.Commons.QueryConfiguration\BBCoders.Commons.QueryConfiguration.csproj", "{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.QueryGenerator", "BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj", "{E932A3E6-6ECD-4ACC-8340-1A521772A5C3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.Tools.IntegrationTests", "BBCoders.Commons.Tools.IntegrationTests\BBCoders.Commons.Tools.IntegrationTests.csproj", "{490C5670-79CB-45DE-9893-BA197A7106F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.SourceGenerator", "BBCoders.Commons.SourceGenerator\BBCoders.Commons.SourceGenerator.csproj", "{02D32D90-A952-4919-8D74-661535CEED41}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.QueryGeneratorTool", "BBCoders.Commons.QueryGeneratorTool\BBCoders.Commons.QueryGeneratorTool.csproj", "{F6D806E3-CC8D-413B-9445-BA8EA9418D9B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BBCoders.Commons.SourceGeneratorTool", "BBCoders.Commons.SourceGeneratorTool\BBCoders.Commons.SourceGeneratorTool.csproj", "{FFAC82A9-E7EE-4F62-AE65-428D19C5536A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,10 +24,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FA2E3DD8-3A49-4805-8135-A895BCF53306}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADE54C23-2330-4712-A6A5-8443855A47F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -36,5 +36,17 @@ Global
 		{490C5670-79CB-45DE-9893-BA197A7106F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{490C5670-79CB-45DE-9893-BA197A7106F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{490C5670-79CB-45DE-9893-BA197A7106F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02D32D90-A952-4919-8D74-661535CEED41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02D32D90-A952-4919-8D74-661535CEED41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02D32D90-A952-4919-8D74-661535CEED41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02D32D90-A952-4919-8D74-661535CEED41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6D806E3-CC8D-413B-9445-BA8EA9418D9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6D806E3-CC8D-413B-9445-BA8EA9418D9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6D806E3-CC8D-413B-9445-BA8EA9418D9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6D806E3-CC8D-413B-9445-BA8EA9418D9B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFAC82A9-E7EE-4F62-AE65-428D19C5536A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFAC82A9-E7EE-4F62-AE65-428D19C5536A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFAC82A9-E7EE-4F62-AE65-428D19C5536A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFAC82A9-E7EE-4F62-AE65-428D19C5536A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

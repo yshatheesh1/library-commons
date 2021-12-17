@@ -22,7 +22,7 @@
 </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BBCoders.Commons.QueryConfiguration\BBCoders.Commons.QueryConfiguration.csproj" />
+    <ProjectReference Include="..\BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj" />
   </ItemGroup> 
 
 </Project>

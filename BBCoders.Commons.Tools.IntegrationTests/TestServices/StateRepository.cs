@@ -35,7 +35,7 @@ namespace BBCoders.Example.DataServices
             {
                 if(result == null) result = new StateModel();
                 result.Id = (Int64)reader["Id"];
-                result.Name = Convert.IsDBNull(reader["Name"]) ? null : (String?)reader["Name"];
+                result.Name = Convert.IsDBNull(reader["Name"]) ? null : (String)reader["Name"];
                 result.StateId = (Byte[])reader["StateId"];
             }
             reader.Close();

@@ -200,5 +200,55 @@ namespace BBCoders.Example.DataServices
                 return results;
             }
         }
+        public async Task<List<GetSheduleAsyncResponseModel>> GetSheduleAsync(GetSheduleAsyncRequestModel GetSheduleAsyncRequestModel)
+        {
+            string sql = @"SELECT `s`.`Id`, `s`.`CreatedById` AS `Test`, TRUE AS `StateActive`, `s0`.`Id`, `s0`.`Name`, `s0`.`StateId`
+				FROM `Schedules` AS `s`
+				LEFT JOIN `Fingerprint` AS `f` ON `s`.`FingerPrintId` = `f`.`Id`
+				LEFT JOIN `States` AS `s0` ON `f`.`StateId` = `s0`.`Id`
+				WHERE `s`.`ScheduleId` = @__Value_0";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Parameters.AddWithValue("@__Value_0", GetSheduleAsyncRequestModel.id);
+                List<GetSheduleAsyncResponseModel> results = new List<GetSheduleAsyncResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetSheduleAsyncResponseModel result = new GetSheduleAsyncResponseModel();
+                    result.ScheduleId = (Int64)reader[0];
+                    result.ScheduleTest = (Int64)reader[1];
+                    result.StateActive = (Boolean)reader[2];
+                    result.StateId = Convert.IsDBNull(reader[3]) ? null : (Int64?)reader[3];
+                    result.StateName = Convert.IsDBNull(reader[4]) ? null : (String)reader[4];
+                    result.StateStateId = Convert.IsDBNull(reader[5]) ? null : (Byte[])reader[5];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
+        public async Task<List<GetSheduleAsync2ResponseModel>> GetSheduleAsync2(GetSheduleAsync2RequestModel GetSheduleAsync2RequestModel)
+        {
+            string sql = @"SELECT COUNT(*)
+				FROM `Schedules` AS `s`
+				GROUP BY `s`.`Id`";
+            using(var connection = new MySqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+                var cmd = new MySqlCommand(sql, connection);
+                List<GetSheduleAsync2ResponseModel> results = new List<GetSheduleAsync2ResponseModel>();
+                var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    GetSheduleAsync2ResponseModel result = new GetSheduleAsync2ResponseModel();
+                    result.Value_0 = (Int32)reader[0];
+                    results.Add(result);
+                }
+                reader.Close();
+                return results;
+            }
+        }
     }
 }
