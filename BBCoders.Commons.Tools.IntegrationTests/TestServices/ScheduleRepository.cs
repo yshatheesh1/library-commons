@@ -114,9 +114,9 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetSheduleActionResponseModel result = new GetSheduleActionResponseModel();
-                    result.Scheduleaction = Convert.IsDBNull(reader[0]) ? null : (Int64?)reader[0];
-                    result.Scheduleid = (Int64)reader[1];
-                    result.Scheduleschedule_id = (Byte[])reader[2];
+                    result.Schedule.action = Convert.IsDBNull(reader[0]) ? null : (Int64?)reader[0];
+                    result.Schedule.id = (Int64)reader[1];
+                    result.Schedule.schedule_id = (Byte[])reader[2];
                     results.Add(result);
                 }
                 reader.Close();
@@ -139,20 +139,20 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetSheduleResponseModel result = new GetSheduleResponseModel();
-                    result.ScheduleId = (Int64)reader[0];
-                    result.ScheduleActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
-                    result.ScheduleCreatedById = (Int64)reader[2];
-                    result.ScheduleCreatedDate = (DateTime)reader[3];
-                    result.ScheduleFingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
-                    result.ScheduleLastUpdatedById = (Int64)reader[5];
-                    result.ScheduleLastUpdatedDate = (DateTime)reader[6];
-                    result.ScheduleScheduleDate = (DateTime)reader[7];
-                    result.ScheduleScheduleId = (Byte[])reader[8];
-                    result.ScheduleScheduleSiteId = (Int64)reader[9];
-                    result.ScheduleSiteId = (Int64)reader[10];
-                    result.ScheduleSiteIsActive = (Boolean)reader[11];
-                    result.ScheduleSiteName = (String)reader[12];
-                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[13];
+                    result.Schedule.Id = (Int64)reader[0];
+                    result.Schedule.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                    result.Schedule.CreatedById = (Int64)reader[2];
+                    result.Schedule.CreatedDate = (DateTime)reader[3];
+                    result.Schedule.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                    result.Schedule.LastUpdatedById = (Int64)reader[5];
+                    result.Schedule.LastUpdatedDate = (DateTime)reader[6];
+                    result.Schedule.ScheduleDate = (DateTime)reader[7];
+                    result.Schedule.ScheduleId = (Byte[])reader[8];
+                    result.Schedule.ScheduleSiteId = (Int64)reader[9];
+                    result.ScheduleSite.Id = (Int64)reader[10];
+                    result.ScheduleSite.IsActive = (Boolean)reader[11];
+                    result.ScheduleSite.Name = (String)reader[12];
+                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[13];
                     results.Add(result);
                 }
                 reader.Close();
@@ -177,23 +177,23 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetScheduleActionAndLocationResponseModel result = new GetScheduleActionAndLocationResponseModel();
-                    result.ScheduleId = (Int64)reader[0];
-                    result.ScheduleActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
-                    result.ScheduleCreatedById = (Int64)reader[2];
-                    result.ScheduleCreatedDate = (DateTime)reader[3];
-                    result.ScheduleFingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
-                    result.ScheduleLastUpdatedById = (Int64)reader[5];
-                    result.ScheduleLastUpdatedDate = (DateTime)reader[6];
-                    result.ScheduleScheduleDate = (DateTime)reader[7];
-                    result.ScheduleScheduleId = (Byte[])reader[8];
-                    result.ScheduleScheduleSiteId = (Int64)reader[9];
-                    result.ActionId = (Int64)reader[10];
-                    result.ActionActionId = (Byte[])reader[11];
-                    result.ActionName = (String)reader[12];
-                    result.ScheduleSiteId = (Int64)reader[13];
-                    result.ScheduleSiteIsActive = (Boolean)reader[14];
-                    result.ScheduleSiteName = (String)reader[15];
-                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[16];
+                    result.Schedule.Id = (Int64)reader[0];
+                    result.Schedule.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                    result.Schedule.CreatedById = (Int64)reader[2];
+                    result.Schedule.CreatedDate = (DateTime)reader[3];
+                    result.Schedule.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                    result.Schedule.LastUpdatedById = (Int64)reader[5];
+                    result.Schedule.LastUpdatedDate = (DateTime)reader[6];
+                    result.Schedule.ScheduleDate = (DateTime)reader[7];
+                    result.Schedule.ScheduleId = (Byte[])reader[8];
+                    result.Schedule.ScheduleSiteId = (Int64)reader[9];
+                    result.Action.Id = (Int64)reader[10];
+                    result.Action.ActionId = (Byte[])reader[11];
+                    result.Action.Name = (String)reader[12];
+                    result.ScheduleSite.Id = (Int64)reader[13];
+                    result.ScheduleSite.IsActive = (Boolean)reader[14];
+                    result.ScheduleSite.Name = (String)reader[15];
+                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[16];
                     results.Add(result);
                 }
                 reader.Close();
@@ -217,12 +217,12 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetSheduleAsyncResponseModel result = new GetSheduleAsyncResponseModel();
-                    result.ScheduleId = (Int64)reader[0];
-                    result.ScheduleTest = (Int64)reader[1];
+                    result.Schedule.Id = (Int64)reader[0];
+                    result.Schedule.Test = (Int64)reader[1];
                     result.StateActive = (Boolean)reader[2];
-                    result.StateId = Convert.IsDBNull(reader[3]) ? null : (Int64?)reader[3];
-                    result.StateName = Convert.IsDBNull(reader[4]) ? null : (String)reader[4];
-                    result.StateStateId = Convert.IsDBNull(reader[5]) ? null : (Byte[])reader[5];
+                    result.State.Id = Convert.IsDBNull(reader[3]) ? null : (Int64?)reader[3];
+                    result.State.Name = Convert.IsDBNull(reader[4]) ? null : (String)reader[4];
+                    result.State.StateId = Convert.IsDBNull(reader[5]) ? null : (Byte[])reader[5];
                     results.Add(result);
                 }
                 reader.Close();

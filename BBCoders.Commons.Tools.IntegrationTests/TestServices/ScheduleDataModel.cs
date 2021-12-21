@@ -29,9 +29,17 @@ namespace BBCoders.Example.DataServices
     }
     public class GetSheduleActionResponseModel
     {
-        public Int64? Scheduleaction { get; set; }
-        public Int64 Scheduleid { get; set; }
-        public Byte[] Scheduleschedule_id { get; set; }
+        public ScheduleProjection Schedule { get; set; }
+        public GetSheduleActionResponseModel()
+        {
+            Schedule = new ScheduleProjection();
+        }
+        public class ScheduleProjection
+        {
+            public Int64? action { get; set; }
+            public Int64 id { get; set; }
+            public Byte[] schedule_id { get; set; }
+        }
     }
     public class GetSheduleRequestModel
     {
@@ -39,20 +47,33 @@ namespace BBCoders.Example.DataServices
     }
     public class GetSheduleResponseModel
     {
-        public Int64 ScheduleId { get; set; }
-        public Int64? ScheduleActionId { get; set; }
-        public Int64 ScheduleCreatedById { get; set; }
-        public DateTime ScheduleCreatedDate { get; set; }
-        public Int64? ScheduleFingerPrintId { get; set; }
-        public Int64 ScheduleLastUpdatedById { get; set; }
-        public DateTime ScheduleLastUpdatedDate { get; set; }
-        public DateTime ScheduleScheduleDate { get; set; }
-        public Byte[] ScheduleScheduleId { get; set; }
-        public Int64 ScheduleScheduleSiteId { get; set; }
-        public Int64 ScheduleSiteId { get; set; }
-        public Boolean ScheduleSiteIsActive { get; set; }
-        public String ScheduleSiteName { get; set; }
-        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+        public ScheduleProjection Schedule { get; set; }
+        public ScheduleSiteProjection ScheduleSite { get; set; }
+        public GetSheduleResponseModel()
+        {
+            Schedule = new ScheduleProjection();
+            ScheduleSite = new ScheduleSiteProjection();
+        }
+        public class ScheduleProjection
+        {
+            public Int64 Id { get; set; }
+            public Int64? ActionId { get; set; }
+            public Int64 CreatedById { get; set; }
+            public DateTime CreatedDate { get; set; }
+            public Int64? FingerPrintId { get; set; }
+            public Int64 LastUpdatedById { get; set; }
+            public DateTime LastUpdatedDate { get; set; }
+            public DateTime ScheduleDate { get; set; }
+            public Byte[] ScheduleId { get; set; }
+            public Int64 ScheduleSiteId { get; set; }
+        }
+        public class ScheduleSiteProjection
+        {
+            public Int64 Id { get; set; }
+            public Boolean IsActive { get; set; }
+            public String Name { get; set; }
+            public Byte[] ScheduleSiteId { get; set; }
+        }
     }
     public class GetScheduleActionAndLocationRequestModel
     {
@@ -61,23 +82,41 @@ namespace BBCoders.Example.DataServices
     }
     public class GetScheduleActionAndLocationResponseModel
     {
-        public Int64 ScheduleId { get; set; }
-        public Int64? ScheduleActionId { get; set; }
-        public Int64 ScheduleCreatedById { get; set; }
-        public DateTime ScheduleCreatedDate { get; set; }
-        public Int64? ScheduleFingerPrintId { get; set; }
-        public Int64 ScheduleLastUpdatedById { get; set; }
-        public DateTime ScheduleLastUpdatedDate { get; set; }
-        public DateTime ScheduleScheduleDate { get; set; }
-        public Byte[] ScheduleScheduleId { get; set; }
-        public Int64 ScheduleScheduleSiteId { get; set; }
-        public Int64 ActionId { get; set; }
-        public Byte[] ActionActionId { get; set; }
-        public String ActionName { get; set; }
-        public Int64 ScheduleSiteId { get; set; }
-        public Boolean ScheduleSiteIsActive { get; set; }
-        public String ScheduleSiteName { get; set; }
-        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+        public ScheduleProjection Schedule { get; set; }
+        public ActionProjection Action { get; set; }
+        public ScheduleSiteProjection ScheduleSite { get; set; }
+        public GetScheduleActionAndLocationResponseModel()
+        {
+            Schedule = new ScheduleProjection();
+            Action = new ActionProjection();
+            ScheduleSite = new ScheduleSiteProjection();
+        }
+        public class ScheduleProjection
+        {
+            public Int64 Id { get; set; }
+            public Int64? ActionId { get; set; }
+            public Int64 CreatedById { get; set; }
+            public DateTime CreatedDate { get; set; }
+            public Int64? FingerPrintId { get; set; }
+            public Int64 LastUpdatedById { get; set; }
+            public DateTime LastUpdatedDate { get; set; }
+            public DateTime ScheduleDate { get; set; }
+            public Byte[] ScheduleId { get; set; }
+            public Int64 ScheduleSiteId { get; set; }
+        }
+        public class ActionProjection
+        {
+            public Int64 Id { get; set; }
+            public Byte[] ActionId { get; set; }
+            public String Name { get; set; }
+        }
+        public class ScheduleSiteProjection
+        {
+            public Int64 Id { get; set; }
+            public Boolean IsActive { get; set; }
+            public String Name { get; set; }
+            public Byte[] ScheduleSiteId { get; set; }
+        }
     }
     public class GetSheduleAsyncRequestModel
     {
@@ -85,18 +124,34 @@ namespace BBCoders.Example.DataServices
     }
     public class GetSheduleAsyncResponseModel
     {
-        public Int64 ScheduleId { get; set; }
-        public Int64 ScheduleTest { get; set; }
+        public ScheduleProjection Schedule { get; set; }
+        public StateProjection State { get; set; }
+        public GetSheduleAsyncResponseModel()
+        {
+            Schedule = new ScheduleProjection();
+            State = new StateProjection();
+        }
+        public class ScheduleProjection
+        {
+            public Int64 Id { get; set; }
+            public Int64 Test { get; set; }
+        }
+        public class StateProjection
+        {
+            public Int64? Id { get; set; }
+            public String Name { get; set; }
+            public Byte[] StateId { get; set; }
+        }
         public Boolean StateActive { get; set; }
-        public Int64? StateId { get; set; }
-        public String StateName { get; set; }
-        public Byte[] StateStateId { get; set; }
     }
     public class GetSheduleAsync2RequestModel
     {
     }
     public class GetSheduleAsync2ResponseModel
     {
+        public GetSheduleAsync2ResponseModel()
+        {
+        }
         public Int32 Value_0 { get; set; }
     }
 }

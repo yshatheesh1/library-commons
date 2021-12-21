@@ -30,17 +30,25 @@ namespace BBCoders.Example.DataServices
     }
     public class GetFingerprintByGuidsResponseModel
     {
-        public Int64 FingerprintId { get; set; }
-        public Int64 FingerprintCreatedById { get; set; }
-        public DateTime FingerprintCreatedDate { get; set; }
-        public DateTime? FingerprintExpirationDate { get; set; }
-        public Byte[] FingerprintFingerprintId { get; set; }
-        public Boolean FingerprintIsActive { get; set; }
-        public Int64 FingerprintLastUpdatedById { get; set; }
-        public Int64 FingerprintNmlsId { get; set; }
-        public DateTime? FingerprintRenewalDate { get; set; }
-        public Int64 FingerprintStateId { get; set; }
-        public DateTime FingerprintUpdatedDate { get; set; }
+        public FingerprintProjection Fingerprint { get; set; }
+        public GetFingerprintByGuidsResponseModel()
+        {
+            Fingerprint = new FingerprintProjection();
+        }
+        public class FingerprintProjection
+        {
+            public Int64 Id { get; set; }
+            public Int64 CreatedById { get; set; }
+            public DateTime CreatedDate { get; set; }
+            public DateTime? ExpirationDate { get; set; }
+            public Byte[] FingerprintId { get; set; }
+            public Boolean IsActive { get; set; }
+            public Int64 LastUpdatedById { get; set; }
+            public Int64 NmlsId { get; set; }
+            public DateTime? RenewalDate { get; set; }
+            public Int64 StateId { get; set; }
+            public DateTime UpdatedDate { get; set; }
+        }
     }
     public class GetFingerprintsByIdRequestModel
     {
@@ -48,9 +56,17 @@ namespace BBCoders.Example.DataServices
     }
     public class GetFingerprintsByIdResponseModel
     {
-        public Int64 FingerprintId { get; set; }
-        public Byte[] FingerprintFingerprintId { get; set; }
-        public Boolean FingerprintIsActive { get; set; }
+        public FingerprintProjection Fingerprint { get; set; }
+        public GetFingerprintsByIdResponseModel()
+        {
+            Fingerprint = new FingerprintProjection();
+        }
+        public class FingerprintProjection
+        {
+            public Int64 Id { get; set; }
+            public Byte[] FingerprintId { get; set; }
+            public Boolean IsActive { get; set; }
+        }
     }
     public class GetFingerprintByStateIdRequestModel
     {
@@ -60,19 +76,32 @@ namespace BBCoders.Example.DataServices
     }
     public class GetFingerprintByStateIdResponseModel
     {
-        public Int64 FingerprintId { get; set; }
-        public Int64 FingerprintCreatedById { get; set; }
-        public DateTime FingerprintCreatedDate { get; set; }
-        public DateTime? FingerprintExpirationDate { get; set; }
-        public Byte[] FingerprintFingerprintId { get; set; }
-        public Boolean FingerprintIsActive { get; set; }
-        public Int64 FingerprintLastUpdatedById { get; set; }
-        public Int64 FingerprintNmlsId { get; set; }
-        public DateTime? FingerprintRenewalDate { get; set; }
-        public Int64 FingerprintStateId { get; set; }
-        public DateTime FingerprintUpdatedDate { get; set; }
-        public Int64 StateId { get; set; }
-        public String StateName { get; set; }
-        public Byte[] StateStateId { get; set; }
+        public FingerprintProjection Fingerprint { get; set; }
+        public StateProjection State { get; set; }
+        public GetFingerprintByStateIdResponseModel()
+        {
+            Fingerprint = new FingerprintProjection();
+            State = new StateProjection();
+        }
+        public class FingerprintProjection
+        {
+            public Int64 Id { get; set; }
+            public Int64 CreatedById { get; set; }
+            public DateTime CreatedDate { get; set; }
+            public DateTime? ExpirationDate { get; set; }
+            public Byte[] FingerprintId { get; set; }
+            public Boolean IsActive { get; set; }
+            public Int64 LastUpdatedById { get; set; }
+            public Int64 NmlsId { get; set; }
+            public DateTime? RenewalDate { get; set; }
+            public Int64 StateId { get; set; }
+            public DateTime UpdatedDate { get; set; }
+        }
+        public class StateProjection
+        {
+            public Int64 Id { get; set; }
+            public String Name { get; set; }
+            public Byte[] StateId { get; set; }
+        }
     }
 }

@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <Description>Generates source files</Description> 
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>BBCoders.Commons.Tools</RootNamespace>
-    <ToolCommandName>sgen</ToolCommandName>
+    <ToolCommandName>bbcoders-sgen</ToolCommandName>
     <RollForward>Major</RollForward>
   </PropertyGroup>
 

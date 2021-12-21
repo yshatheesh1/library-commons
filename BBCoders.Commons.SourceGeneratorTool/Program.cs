@@ -31,6 +31,7 @@ namespace BBCoders.Commons.SourceGeneratorTool
             {
                 generate.Description = "generates source files";
                 generate.HelpOption("-?|-h|--help");
+                Reporter.IsVerbose = generate.Option("--verbose", "Log options", CommandOptionType.NoValue).HasValue();
                 var _noBuild = generate.Option("--no-build", "Don't build the project. Intended to be used when the build is up-to-date.", CommandOptionType.NoValue);
                 generate.OnExecute(() =>
                 {

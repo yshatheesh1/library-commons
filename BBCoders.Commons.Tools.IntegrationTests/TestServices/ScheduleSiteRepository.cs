@@ -96,10 +96,10 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetScheduleSitesByLocationResponseModel result = new GetScheduleSitesByLocationResponseModel();
-                    result.ScheduleSiteId = (Int64)reader[0];
-                    result.ScheduleSiteIsActive = (Boolean)reader[1];
-                    result.ScheduleSiteName = (String)reader[2];
-                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[3];
+                    result.ScheduleSite.Id = (Int64)reader[0];
+                    result.ScheduleSite.IsActive = (Boolean)reader[1];
+                    result.ScheduleSite.Name = (String)reader[2];
+                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
                     results.Add(result);
                 }
                 reader.Close();
@@ -121,10 +121,10 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetSheduleSiteStatusResponseModel result = new GetSheduleSiteStatusResponseModel();
-                    result.ScheduleSiteId = (Int64)reader[0];
-                    result.ScheduleSiteIsActive = (Boolean)reader[1];
-                    result.ScheduleSiteName = (String)reader[2];
-                    result.ScheduleSiteScheduleSiteId = (Byte[])reader[3];
+                    result.ScheduleSite.Id = (Int64)reader[0];
+                    result.ScheduleSite.IsActive = (Boolean)reader[1];
+                    result.ScheduleSite.Name = (String)reader[2];
+                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
                     results.Add(result);
                 }
                 reader.Close();

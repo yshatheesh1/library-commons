@@ -23,10 +23,18 @@ namespace BBCoders.Example.DataServices
     }
     public class GetScheduleSitesByLocationResponseModel
     {
-        public Int64 ScheduleSiteId { get; set; }
-        public Boolean ScheduleSiteIsActive { get; set; }
-        public String ScheduleSiteName { get; set; }
-        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+        public ScheduleSiteProjection ScheduleSite { get; set; }
+        public GetScheduleSitesByLocationResponseModel()
+        {
+            ScheduleSite = new ScheduleSiteProjection();
+        }
+        public class ScheduleSiteProjection
+        {
+            public Int64 Id { get; set; }
+            public Boolean IsActive { get; set; }
+            public String Name { get; set; }
+            public Byte[] ScheduleSiteId { get; set; }
+        }
     }
     public class GetSheduleSiteStatusRequestModel
     {
@@ -34,9 +42,17 @@ namespace BBCoders.Example.DataServices
     }
     public class GetSheduleSiteStatusResponseModel
     {
-        public Int64 ScheduleSiteId { get; set; }
-        public Boolean ScheduleSiteIsActive { get; set; }
-        public String ScheduleSiteName { get; set; }
-        public Byte[] ScheduleSiteScheduleSiteId { get; set; }
+        public ScheduleSiteProjection ScheduleSite { get; set; }
+        public GetSheduleSiteStatusResponseModel()
+        {
+            ScheduleSite = new ScheduleSiteProjection();
+        }
+        public class ScheduleSiteProjection
+        {
+            public Int64 Id { get; set; }
+            public Boolean IsActive { get; set; }
+            public String Name { get; set; }
+            public Byte[] ScheduleSiteId { get; set; }
+        }
     }
 }

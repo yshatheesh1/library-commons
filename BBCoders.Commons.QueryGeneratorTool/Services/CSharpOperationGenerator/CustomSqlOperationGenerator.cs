@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using BBCoders.Commons.QueryGeneratorTool.Models;
 using Humanizer;
@@ -44,12 +46,41 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             builder.AppendLine("{");
             using (builder.Indent())
             {
-                foreach (var parameter in customSqlModel.Projections)
+                var projections = customSqlModel.Projections.Where(x => x.Table == null).ToList();
+                var models = customSqlModel.Projections.Where(x => x.Table != null).GroupBy(x => x.Table.Name).ToDictionary(x => x.Key, y => y.ToList());
+
+                foreach (var model in models)
                 {
-                    var type = parameter.IsNullable && parameter.IsValueType ? parameter.Type + "?" : parameter.Type;
-                    builder.Append($"public {type} {parameter.Name}")
-                            .AppendLine(" { get; set; }");
+                    var className = model.Key.Singularize().Pascalize();
+                    builder.Append($"public {className}Projection {className}")
+                           .AppendLine(" { get; set; }");
                 }
+
+                builder.AppendLine($"public {responseModelName}()");
+                builder.AppendLine("{");
+                using (builder.Indent())
+                {
+                    foreach (var model in models)
+                    {
+                        var className = model.Key.Singularize().Pascalize();
+                        builder.Append($"{className}")
+                        .AppendLine($" = new {className}Projection();");
+                    }
+                }
+                builder.AppendLine("}");
+
+                foreach (var model in models)
+                {
+                    var className = model.Key.Singularize().Pascalize();
+                    builder.AppendLine($"public class {className}Projection");
+                    builder.AppendLine("{");
+                    using (builder.Indent())
+                    {
+                        renderModelProjections(model.Value, builder);
+                    }
+                    builder.AppendLine("}");
+                }
+                renderModelProjections(projections, builder);
             }
             builder.AppendLine("}");
         }
@@ -102,7 +133,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                         {
                             var property = customSqlModel.Projections[i];
                             var type = property.IsNullable && property.IsValueType ? property.Type + "?" : property.Type;
-                            builder.Append($"result.{property.Name} = ");
+                            var propertyName = property.Table != null ? property.Table.Name.Singularize().Pascalize() + "." + property.Name : property.Name;
+                            builder.Append($"result.{propertyName} = ");
                             if (property.IsNullable)
                                 builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");
                             builder.AppendLine($"({type})reader[{i}];");
@@ -139,6 +171,16 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 }
             }
             migrationCommandListBuilder.AppendLine($"string sql = @\"{sql}\";");
+        }
+
+        void renderModelProjections(List<SqlProjection> projections, IndentedStringBuilder builder)
+        {
+            foreach (var parameter in projections)
+            {
+                var type = parameter.IsNullable && parameter.IsValueType ? parameter.Type + "?" : parameter.Type;
+                builder.Append($"public {type} {parameter.Name}")
+                        .AppendLine(" { get; set; }");
+            }
         }
     }
 

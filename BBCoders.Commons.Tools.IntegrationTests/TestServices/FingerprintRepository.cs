@@ -119,17 +119,17 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetFingerprintByGuidsResponseModel result = new GetFingerprintByGuidsResponseModel();
-                    result.FingerprintId = (Int64)reader[0];
-                    result.FingerprintCreatedById = (Int64)reader[1];
-                    result.FingerprintCreatedDate = (DateTime)reader[2];
-                    result.FingerprintExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
-                    result.FingerprintFingerprintId = (Byte[])reader[4];
-                    result.FingerprintIsActive = (Boolean)reader[5];
-                    result.FingerprintLastUpdatedById = (Int64)reader[6];
-                    result.FingerprintNmlsId = (Int64)reader[7];
-                    result.FingerprintRenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
-                    result.FingerprintStateId = (Int64)reader[9];
-                    result.FingerprintUpdatedDate = (DateTime)reader[10];
+                    result.Fingerprint.Id = (Int64)reader[0];
+                    result.Fingerprint.CreatedById = (Int64)reader[1];
+                    result.Fingerprint.CreatedDate = (DateTime)reader[2];
+                    result.Fingerprint.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                    result.Fingerprint.FingerprintId = (Byte[])reader[4];
+                    result.Fingerprint.IsActive = (Boolean)reader[5];
+                    result.Fingerprint.LastUpdatedById = (Int64)reader[6];
+                    result.Fingerprint.NmlsId = (Int64)reader[7];
+                    result.Fingerprint.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                    result.Fingerprint.StateId = (Int64)reader[9];
+                    result.Fingerprint.UpdatedDate = (DateTime)reader[10];
                     results.Add(result);
                 }
                 reader.Close();
@@ -153,9 +153,9 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetFingerprintsByIdResponseModel result = new GetFingerprintsByIdResponseModel();
-                    result.FingerprintId = (Int64)reader[0];
-                    result.FingerprintFingerprintId = (Byte[])reader[1];
-                    result.FingerprintIsActive = (Boolean)reader[2];
+                    result.Fingerprint.Id = (Int64)reader[0];
+                    result.Fingerprint.FingerprintId = (Byte[])reader[1];
+                    result.Fingerprint.IsActive = (Boolean)reader[2];
                     results.Add(result);
                 }
                 reader.Close();
@@ -184,20 +184,20 @@ namespace BBCoders.Example.DataServices
                 while (await reader.ReadAsync())
                 {
                     GetFingerprintByStateIdResponseModel result = new GetFingerprintByStateIdResponseModel();
-                    result.FingerprintId = (Int64)reader[0];
-                    result.FingerprintCreatedById = (Int64)reader[1];
-                    result.FingerprintCreatedDate = (DateTime)reader[2];
-                    result.FingerprintExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
-                    result.FingerprintFingerprintId = (Byte[])reader[4];
-                    result.FingerprintIsActive = (Boolean)reader[5];
-                    result.FingerprintLastUpdatedById = (Int64)reader[6];
-                    result.FingerprintNmlsId = (Int64)reader[7];
-                    result.FingerprintRenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
-                    result.FingerprintStateId = (Int64)reader[9];
-                    result.FingerprintUpdatedDate = (DateTime)reader[10];
-                    result.StateId = (Int64)reader[11];
-                    result.StateName = Convert.IsDBNull(reader[12]) ? null : (String)reader[12];
-                    result.StateStateId = (Byte[])reader[13];
+                    result.Fingerprint.Id = (Int64)reader[0];
+                    result.Fingerprint.CreatedById = (Int64)reader[1];
+                    result.Fingerprint.CreatedDate = (DateTime)reader[2];
+                    result.Fingerprint.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                    result.Fingerprint.FingerprintId = (Byte[])reader[4];
+                    result.Fingerprint.IsActive = (Boolean)reader[5];
+                    result.Fingerprint.LastUpdatedById = (Int64)reader[6];
+                    result.Fingerprint.NmlsId = (Int64)reader[7];
+                    result.Fingerprint.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                    result.Fingerprint.StateId = (Int64)reader[9];
+                    result.Fingerprint.UpdatedDate = (DateTime)reader[10];
+                    result.State.Id = (Int64)reader[11];
+                    result.State.Name = Convert.IsDBNull(reader[12]) ? null : (String)reader[12];
+                    result.State.StateId = (Byte[])reader[13];
                     results.Add(result);
                 }
                 reader.Close();

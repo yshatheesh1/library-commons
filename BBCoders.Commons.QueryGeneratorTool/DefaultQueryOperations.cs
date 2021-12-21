@@ -56,9 +56,11 @@ namespace BBCoders.Commons.QueryGeneratorTool
         /// </summary>
         public void Execute()
         {
+            _reporter.WriteInformation("Started generating source for queries");
             var type = typeof(IQueryGenerator<>);
             var queryGenerators = assembly.GetTypes().Where(x => !x.IsInterface &&
                 x.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == type.GetGenericTypeDefinition()));
+              _reporter.WriteInformation($"Found {queryGenerators.Count()} query generators.");
             foreach (var queryGenerator in queryGenerators)
             {
                 var contextType = queryGenerator.GetInterfaces().First(x => x.IsGenericType &&
@@ -138,7 +140,10 @@ namespace BBCoders.Commons.QueryGeneratorTool
                         sqlProjection.IsNullable = columnExpression.IsNullable;
                         if (columnExpression.Table is TableExpression tableExpression)
                         {
-                            sqlProjection.Name = tableExpression.Name.Singularize() + projection.Alias;
+                            sqlProjection.Name = projection.Alias;
+                            sqlProjection.Table = new SqlTable() {
+                                Name = tableExpression.Name,
+                            };
                         }
                     }
                     customSqlModel.Projections.Add(sqlProjection);
