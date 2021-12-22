@@ -9,26 +9,56 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MySqlConnector;
+using System.Data;
+using System.Data.Common;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ScheduleSiteRepository
+    public static class ScheduleSiteRepository
     {
-        private readonly string _connectionString;
-        public ScheduleSiteRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<ScheduleSiteModel> SelectScheduleSite(Int64 Id)
+        public static async Task<ScheduleSiteModel> SelectScheduleSite(this DbConnection connection, ScheduleSiteKey scheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
+            string sql = @"SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", scheduleSiteKey.Id);
+            if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync();
-                string sql = @"SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetScheduleSiteResultSet(cmd);
-            }
+            return await GetScheduleSiteResultSet(command);
         }
-        private async Task<ScheduleSiteModel> GetScheduleSiteResultSet(MySqlCommand cmd, ScheduleSiteModel result = null)
+        public static async Task<ScheduleSiteModel> InsertScheduleSite(this DbConnection connection, ScheduleSiteModel scheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive, @Name, @ScheduleSiteId);
+SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@IsActive", scheduleSiteModel.IsActive);
+            command.CreateParameter("@Name", scheduleSiteModel.Name);
+            command.CreateParameter("@ScheduleSiteId", scheduleSiteModel.ScheduleSiteId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await GetScheduleSiteResultSet(command, scheduleSiteModel);
+        }
+        public static async Task<int> UpdateScheduleSite(this DbConnection connection, ScheduleSiteModel scheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", scheduleSiteModel.Id);
+            command.CreateParameter("@IsActive", scheduleSiteModel.IsActive);
+            command.CreateParameter("@Name", scheduleSiteModel.Name);
+            command.CreateParameter("@ScheduleSiteId", scheduleSiteModel.ScheduleSiteId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<int> DeleteScheduleSite(this DbConnection connection, ScheduleSiteKey scheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", scheduleSiteKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        private static async Task<ScheduleSiteModel> GetScheduleSiteResultSet(DbCommand cmd, ScheduleSiteModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -42,94 +72,66 @@ namespace BBCoders.Example.DataServices
             reader.Close();
             return result;
         }
-        public async Task<ScheduleSiteModel> InsertScheduleSite(ScheduleSiteModel ScheduleSiteModel)
-        {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive, @Name, @ScheduleSiteId);
-                SELECT * FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteModel.IsActive);
-                cmd.Parameters.AddWithValue("@Name", ScheduleSiteModel.Name);
-                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteModel.ScheduleSiteId);
-                return await GetScheduleSiteResultSet(cmd, ScheduleSiteModel);
-            }
-        }
-        public async Task<int> UpdateScheduleSite(ScheduleSiteModel ScheduleSiteModel)
-        {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", ScheduleSiteModel.Id);
-                cmd.Parameters.AddWithValue("@IsActive", ScheduleSiteModel.IsActive);
-                cmd.Parameters.AddWithValue("@Name", ScheduleSiteModel.Name);
-                cmd.Parameters.AddWithValue("@ScheduleSiteId", ScheduleSiteModel.ScheduleSiteId);
-                return await cmd.ExecuteNonQueryAsync();
-            }
-        }
-        public async Task<int> DeleteScheduleSite(Int64 Id)
-        {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await cmd.ExecuteNonQueryAsync();
-            }
-        }
-        public async Task<List<GetScheduleSitesByLocationResponseModel>> GetScheduleSitesByLocation(GetScheduleSitesByLocationRequestModel GetScheduleSitesByLocationRequestModel)
+        public static async Task<List<GetScheduleSitesByLocationResponseModel>> GetScheduleSitesByLocation(this DbConnection connection, GetScheduleSitesByLocationRequestModel getScheduleSitesByLocationRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
             string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
 				FROM `ScheduleSites` AS `s`
 				WHERE `s`.`Name` LIKE @__Format_1";
-            using(var connection = new MySqlConnection(_connectionString))
+
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@__Format_1", getScheduleSitesByLocationRequestModel.location);
+            List<GetScheduleSitesByLocationResponseModel> results = new List<GetScheduleSitesByLocationResponseModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@__Format_1", GetScheduleSitesByLocationRequestModel.location);
-                List<GetScheduleSitesByLocationResponseModel> results = new List<GetScheduleSitesByLocationResponseModel>();
-                var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    GetScheduleSitesByLocationResponseModel result = new GetScheduleSitesByLocationResponseModel();
-                    result.ScheduleSite.Id = (Int64)reader[0];
-                    result.ScheduleSite.IsActive = (Boolean)reader[1];
-                    result.ScheduleSite.Name = (String)reader[2];
-                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
-                    results.Add(result);
-                }
-                reader.Close();
-                return results;
+                GetScheduleSitesByLocationResponseModel result = new GetScheduleSitesByLocationResponseModel();
+                result.ScheduleSite.Id = (Int64)reader[0];
+                result.ScheduleSite.IsActive = (Boolean)reader[1];
+                result.ScheduleSite.Name = (String)reader[2];
+                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
+                results.Add(result);
             }
+            reader.Close();
+            return results;
         }
-        public async Task<List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(GetSheduleSiteStatusRequestModel GetSheduleSiteStatusRequestModel)
+        public static async Task<List<GetSheduleSiteStatusResponseModel>> GetSheduleSiteStatus(this DbConnection connection, GetSheduleSiteStatusRequestModel getSheduleSiteStatusRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
             string sql = @"SELECT `s`.`Id`, `s`.`IsActive`, `s`.`Name`, `s`.`ScheduleSiteId`
 				FROM `ScheduleSites` AS `s`
 				WHERE `s`.`ScheduleSiteId` = @__Value_0";
-            using(var connection = new MySqlConnection(_connectionString))
+
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@__Value_0", getSheduleSiteStatusRequestModel.id);
+            List<GetSheduleSiteStatusResponseModel> results = new List<GetSheduleSiteStatusResponseModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@__Value_0", GetSheduleSiteStatusRequestModel.id);
-                List<GetSheduleSiteStatusResponseModel> results = new List<GetSheduleSiteStatusResponseModel>();
-                var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    GetSheduleSiteStatusResponseModel result = new GetSheduleSiteStatusResponseModel();
-                    result.ScheduleSite.Id = (Int64)reader[0];
-                    result.ScheduleSite.IsActive = (Boolean)reader[1];
-                    result.ScheduleSite.Name = (String)reader[2];
-                    result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
-                    results.Add(result);
-                }
-                reader.Close();
-                return results;
+                GetSheduleSiteStatusResponseModel result = new GetSheduleSiteStatusResponseModel();
+                result.ScheduleSite.Id = (Int64)reader[0];
+                result.ScheduleSite.IsActive = (Boolean)reader[1];
+                result.ScheduleSite.Name = (String)reader[2];
+                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
+                results.Add(result);
             }
+            reader.Close();
+            return results;
+        }
+        private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
+        {
+            var dbCommand = connection.CreateCommand();
+            dbCommand.CommandText = sql;
+            dbCommand.CommandType = CommandType.Text;
+            dbCommand.Transaction = transaction;
+            dbCommand.CommandTimeout = timeout.HasValue ? timeout.Value : dbCommand.CommandTimeout;
+            return dbCommand;
+        }
+        private static DbParameter CreateParameter(this DbCommand command, string name, object value)
+        {
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value;
+            command.Parameters.Add(parameter);
+            return parameter;
         }
     }
 }

@@ -89,29 +89,81 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             builder.AppendLine("using System.Linq;");
             builder.AppendLine("using System.Collections.Generic;");
             builder.AppendLine("using System.Threading.Tasks;");
-            builder.AppendLine("using MySqlConnector;");
+            builder.AppendLine("using System.Data;");
+            builder.AppendLine("using System.Data.Common;");
             builder.AppendLine();
             builder.AppendLine($"namespace {_queryOptions.PackageName}");
             builder.AppendLine("{");
             using (builder.Indent())
             {
-                builder.AppendLine($"public class {_queryOptions.ClassName}");
+                builder.AppendLine($"public static class {_queryOptions.ClassName}");
                 builder.AppendLine("{");
                 using (builder.Indent())
                 {
-                    builder.AppendLine("private readonly string _connectionString;");
-                    builder.Append($"public {_queryOptions.ClassName}(string connectionString)");
-                    builder.AppendLine("{ this._connectionString = connectionString; }");
                     foreach (var generator in _operationGenerators)
                     {
-                        generator.GenerateMethod(builder, "_connectionString");
+                        generator.GenerateMethod(builder);
                     }
+                    GenerateHelperMethods(builder);
                 }
                 builder.AppendLine("}");
             }
 
             builder.AppendLine("}");
         }
+
+        private void GenerateHelperMethods(IndentedStringBuilder builder)
+        {
+            /*
+                    private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
+                    {
+                        var dbCommand = connection.CreateCommand();
+                        dbCommand.CommandText = sql;
+                        dbCommand.CommandType = CommandType.Text;
+                        dbCommand.Transaction = transaction;
+                        dbCommand.CommandTimeout = timeout.HasValue ? timeout.Value : dbCommand.CommandTimeout;
+                        return dbCommand;
+                    } 
+            */
+            builder.AppendLine("private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)");
+            builder.AppendLine("{");
+            using (builder.Indent())
+            {
+                builder.AppendLine("var dbCommand = connection.CreateCommand();");
+                builder.AppendLine("dbCommand.CommandText = sql;");
+                builder.AppendLine("dbCommand.CommandType = CommandType.Text;");
+                builder.AppendLine("dbCommand.Transaction = transaction;");
+                builder.AppendLine("dbCommand.CommandTimeout = timeout.HasValue ? timeout.Value : dbCommand.CommandTimeout;");
+                builder.AppendLine("return dbCommand;");
+            }
+            builder.AppendLine("}");
+
+            /*
+
+                   private static void CreateParameter(this DbCommand command, string name, object value, DbType dbType)
+                    {
+                        var parameter = command.CreateParameter();
+                        parameter.ParameterName = name;
+                        parameter.Value = value;
+                        parameter.DbType = dbType;
+                        command.Parameters.Add(parameter);
+                    }
+            */
+
+            builder.AppendLine("private static DbParameter CreateParameter(this DbCommand command, string name, object value)");
+            builder.AppendLine("{");
+            using (builder.Indent())
+            {
+                builder.AppendLine("var parameter = command.CreateParameter();");
+                builder.AppendLine("parameter.ParameterName = name;");
+                builder.AppendLine("parameter.Value = value;");
+                // builder.AppendLine("if (dbType != null) parameter.DbType = dbType;");
+                builder.AppendLine("command.Parameters.Add(parameter);");
+                builder.AppendLine("return parameter;");
+            }
+            builder.AppendLine("}");
+        }
+
         private void CreateGoService(IndentedStringBuilder builder)
         {
             GenerateComment(builder);

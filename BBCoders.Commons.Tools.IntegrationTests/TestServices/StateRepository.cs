@@ -9,26 +9,54 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MySqlConnector;
+using System.Data;
+using System.Data.Common;
 
 namespace BBCoders.Example.DataServices
 {
-    public class StateRepository
+    public static class StateRepository
     {
-        private readonly string _connectionString;
-        public StateRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<StateModel> SelectState(Int64 Id)
+        public static async Task<StateModel> SelectState(this DbConnection connection, StateKey stateKey, DbTransaction transaction = null, int? timeout = null)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
+            string sql = @"SELECT * FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", stateKey.Id);
+            if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync();
-                string sql = @"SELECT * FROM `States` AS `s` WHERE `s`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetStateResultSet(cmd);
-            }
+            return await GetStateResultSet(command);
         }
-        private async Task<StateModel> GetStateResultSet(MySqlCommand cmd, StateModel result = null)
+        public static async Task<StateModel> InsertState(this DbConnection connection, StateModel stateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name, @StateId);
+SELECT * FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Name", stateModel.Name);
+            command.CreateParameter("@StateId", stateModel.StateId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await GetStateResultSet(command, stateModel);
+        }
+        public static async Task<int> UpdateState(this DbConnection connection, StateModel stateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", stateModel.Id);
+            command.CreateParameter("@Name", stateModel.Name);
+            command.CreateParameter("@StateId", stateModel.StateId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<int> DeleteState(this DbConnection connection, StateKey stateKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", stateKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        private static async Task<StateModel> GetStateResultSet(DbCommand cmd, StateModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -41,42 +69,22 @@ namespace BBCoders.Example.DataServices
             reader.Close();
             return result;
         }
-        public async Task<StateModel> InsertState(StateModel StateModel)
+        private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name, @StateId);
-                SELECT * FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Name", StateModel.Name);
-                cmd.Parameters.AddWithValue("@StateId", StateModel.StateId);
-                return await GetStateResultSet(cmd, StateModel);
-            }
+            var dbCommand = connection.CreateCommand();
+            dbCommand.CommandText = sql;
+            dbCommand.CommandType = CommandType.Text;
+            dbCommand.Transaction = transaction;
+            dbCommand.CommandTimeout = timeout.HasValue ? timeout.Value : dbCommand.CommandTimeout;
+            return dbCommand;
         }
-        public async Task<int> UpdateState(StateModel StateModel)
+        private static DbParameter CreateParameter(this DbCommand command, string name, object value)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", StateModel.Id);
-                cmd.Parameters.AddWithValue("@Name", StateModel.Name);
-                cmd.Parameters.AddWithValue("@StateId", StateModel.StateId);
-                return await cmd.ExecuteNonQueryAsync();
-            }
-        }
-        public async Task<int> DeleteState(Int64 Id)
-        {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await cmd.ExecuteNonQueryAsync();
-            }
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value;
+            command.Parameters.Add(parameter);
+            return parameter;
         }
     }
 }

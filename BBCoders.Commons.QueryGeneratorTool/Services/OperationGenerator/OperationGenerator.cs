@@ -28,7 +28,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
         }
 
         public abstract void GenerateSql(IndentedStringBuilder migrationCommandListBuilder);
-        public abstract void GenerateMethod(IndentedStringBuilder builder, string connectionString);
+        public abstract void GenerateMethod(IndentedStringBuilder builder);
 
         public abstract void GenerateModel(IndentedStringBuilder builder);
 

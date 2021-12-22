@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Generates source files for queries</Description> 
-    <Version>0.3.1</Version>
+    <Version>0.3.5</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -21,7 +21,6 @@
   <ItemGroup>
     <ProjectReference Include="..\BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj" />
     <ProjectReference Include="..\BBCoders.Commons.Utilities\BBCoders.Commons.Utilities.csproj" />
-    <ProjectReference Include="..\BBCoders.Commons.Tools\BBCoders.Commons.Tools.csproj" />
   </ItemGroup>
 
 </Project>

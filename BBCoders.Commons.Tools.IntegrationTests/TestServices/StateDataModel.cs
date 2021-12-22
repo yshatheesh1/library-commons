@@ -10,6 +10,10 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
+    public class StateKey
+    {
+        public Int64 Id { get; set; }
+    }
     public class StateModel
     {
         public Int64 Id { get; set; }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BBCoders.Commons.Tools.IntegrationTests.Context;
 using BBCoders.Example.DataServices;
+using MySql.Data.MySqlClient;
 using Xunit;
 
 namespace BBCoders.Commons.Tools.IntegrationTests
@@ -16,7 +17,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         [Fact]
         public async Task CreatesScheduleModelAndRepository()
         {
-            var repository = new ScheduleSiteRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var scheduleSiteModel = new ScheduleSiteModel()
             {
                 IsActive = true,
@@ -33,21 +34,21 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             var updatedStatus = await repository.UpdateScheduleSite(scheduleSiteModel);
             Assert.Equal(1, updatedStatus);
 
-            var updated = await repository.SelectScheduleSite(scheduleSiteModel.Id);
+            var updated = await repository.SelectScheduleSite(new ScheduleSiteKey() { Id = scheduleSiteModel.Id });
             Assert.Equal(updated.Id, scheduleSiteModel.Id);
             Assert.Equal(updated.IsActive, scheduleSiteModel.IsActive);
             Assert.Equal(updated.Name, scheduleSiteModel.Name);
             Assert.Equal(updated.ScheduleSiteId, scheduleSiteModel.ScheduleSiteId);
             // assert delete
-            var deleteStatus = await repository.DeleteScheduleSite(updated.Id);
+            var deleteStatus = await repository.DeleteScheduleSite(new ScheduleSiteKey() { Id = updated.Id });
             Assert.Equal(1, deleteStatus);
         }
 
         [Fact]
         public async Task TestFingerprint()
         {
-            var stateRepository = new StateRepository(TestContextDesignTimeBuilder.ConnectionString);
-            var repository = new FingerprintRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var stateRepository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
+            var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var state = new StateModel()
             {
                 Name = "Test",
@@ -80,16 +81,16 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             fingerprintModel.NmlsId = 345;
             var updatedStatus = await repository.UpdateFingerprint(fingerprintModel);
             Assert.Equal(1, updatedStatus);
-            var deleteFingerprintStatus = await repository.DeleteFingerprint(fingerprintModel.Id);
+            var deleteFingerprintStatus = await repository.DeleteFingerprint(new FingerprintKey() { Id = fingerprintModel.Id });
             Assert.Equal(1, deleteFingerprintStatus);
-            var deleteStateStatus = await stateRepository.DeleteState(state.Id);
+            var deleteStateStatus = await stateRepository.DeleteState(new StateKey() { Id = state.Id });
             Assert.Equal(1, deleteStateStatus);
         }
 
         [Fact]
         public async Task TestCustomQuery()
         {
-            var repository = new ScheduleSiteRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var scheduleSiteModel = new ScheduleSiteModel()
             {
                 IsActive = true,
@@ -105,7 +106,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             Assert.Equal(scheduleSiteModel.IsActive, getScheduleSiteStatus.ScheduleSite.IsActive);
             Assert.Equal(scheduleSiteModel.ScheduleSiteId, getScheduleSiteStatus.ScheduleSite.ScheduleSiteId);
 
-            var status = await repository.DeleteScheduleSite(scheduleSiteModel.Id);
+            var status = await repository.DeleteScheduleSite(new ScheduleSiteKey() { Id = scheduleSiteModel.Id });
             Assert.Equal(1, status);
         }
 
@@ -113,7 +114,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         [Fact]
         public async Task TestCustomQueryJoin()
         {
-            var repository = new ScheduleSiteRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var scheduleSiteModel = new ScheduleSiteModel()
             {
                 IsActive = true,
@@ -122,14 +123,14 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             };
             await repository.InsertScheduleSite(scheduleSiteModel);
 
-            var actionRepository = new ActionRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var actionRepository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var actionModel = await actionRepository.InsertAction(new ActionModel()
             {
                 ActionId = Guid.NewGuid().ToByteArray(),
                 Name = "test"
             });
 
-            var scheduleRepository = new ScheduleRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var scheduleRepository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var schedule = new ScheduleModel()
             {
                 ScheduleId = Guid.NewGuid().ToByteArray(),
@@ -202,16 +203,16 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             Assert.Equal(getScheduleActionAndLocation.Action.ActionId, actionModel.ActionId);
 
 
-            await scheduleRepository.DeleteSchedule(schedule.Id);
-            await scheduleRepository.DeleteSchedule(anotherSchedule.Id);
-            await repository.DeleteScheduleSite(scheduleSiteModel.Id);
-            await actionRepository.DeleteAction(actionModel.Id);
+            await scheduleRepository.DeleteSchedule(new ScheduleKey() { Id = schedule.Id });
+            await scheduleRepository.DeleteSchedule(new ScheduleKey() { Id = anotherSchedule.Id });
+            await repository.DeleteScheduleSite(new ScheduleSiteKey() { Id = scheduleSiteModel.Id });
+            await actionRepository.DeleteAction(new ActionKey() { Id = actionModel.Id });
         }
 
         [Fact]
         public async Task TestCustomInQuery()
         {
-            var stateRepository = new StateRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var stateRepository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var state = new StateModel()
             {
                 Name = "Test",
@@ -220,7 +221,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             await stateRepository.InsertState(state);
             Assert.NotNull(state.Id);
             Assert.Equal(state.Name, "Test");
-            var repository = new FingerprintRepository(TestContextDesignTimeBuilder.ConnectionString);
+            var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var fingerprintModel1 = new FingerprintModel()
             {
                 CreatedById = 1,
@@ -241,7 +242,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 NmlsId = 123,
                 UpdatedDate = DateTime.Today,
                 CreatedDate = DateTime.Today,
-            StateId = state.Id
+                StateId = state.Id
             };
             await repository.InsertFingerprint(fingerprintModel1);
             await repository.InsertFingerprint(fingerprintModel2);
@@ -251,8 +252,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 test = new List<Byte[]>() { fingerprintModel1.FingerprintId, fingerprintModel2.FingerprintId }
             });
             Assert.Equal(2, response.Count);
-            await repository.DeleteFingerprint(fingerprintModel1.Id);
-            await repository.DeleteFingerprint(fingerprintModel2.Id);
+            await repository.DeleteFingerprint(new FingerprintKey() { Id =  fingerprintModel1.Id });
+            await repository.DeleteFingerprint(new FingerprintKey() { Id =  fingerprintModel2.Id });
         }
     }
 }

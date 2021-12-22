@@ -36,38 +36,28 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             else
                 new SelectSqlOperationGenerator(_dependencies, _table).GenerateSql(builder);
         }
-        public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public override void GenerateMethod(IndentedStringBuilder builder)
         {
             var tableName = GetEntityName();
-            var modelName = getModelName();
             var autoIncrementColumns = GetMappings().Where(x => x.isAutoIncrement()).Select(x => x.Name);
             var autoIncrementColumn = _table.Columns.Where(x => autoIncrementColumns.Contains(x.Name)).FirstOrDefault()?.PropertyMappings.First().Property;
-            builder.AppendLine($"public async Task<{modelName}> Insert{tableName}({modelName} {modelName})");
-            builder.AppendLine("{");
             var nonAutoIncrementColumn = _table.Columns.Where(x => !autoIncrementColumns.Contains(x.Name));
-            var properties = nonAutoIncrementColumn.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-
-            using (builder.Indent())
+            var nonAutoIncrementProperties = nonAutoIncrementColumn.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
+            var properties = _table.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
+            var sqlBuilder = new IndentedStringBuilder();
+            GenerateSql(sqlBuilder);
+            var methodOp = new MethodOperation()
             {
-                // method implementation
-                builder.AppendLine($"using(var connection = new MySqlConnection({connectionString}))");
-                builder.AppendLine("{");
-                using (builder.Indent())
-                {
-                    builder.AppendLine("await connection.OpenAsync();");
-                    builder.Append("string sql = @\"");
-                    GenerateSql(builder);
-                    builder.AppendLine("\";");
-                    builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
-                    foreach (var property in properties.Keys)
-                    {
-                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{properties[property].Name}\", {modelName}.{property.Name});");
-                    }
-                    builder.AppendLine($"return await {GetResultSetMethodName()}(cmd, {modelName});");
-                }
-                builder.AppendLine("}");
-            }
-            builder.AppendLine("}");
+                MethodName = "Insert" + tableName,
+                InputModel = GetOutputModelName(),
+                InputModelParameters = nonAutoIncrementProperties.Select(x => new ModelParameter { Name = properties[x.Key].Name, Value = x.Key.Name, DbType = _dependencies.relationalTypeMappingSource.FindMapping(x.Key.ClrType).DbType.ToString(), Type = getTypeName(x.Key) }).ToList(),
+                Sql = sqlBuilder.ToString(),
+                HasResult = true,
+                UpdateInputModel = true,
+                OutputModel = GetOutputModelName(),
+                OutputModelParameters = properties.Select(x => new ModelParameter { Name = x.Key.Name, Value = properties[x.Key].Name, DbType = _dependencies.relationalTypeMappingSource.FindMapping(x.Key.ClrType).DbType.ToString(), Type = getTypeName(x.Key) }).ToList(),
+            };
+            GenerateBaseMethod(builder, methodOp);
         }
     }
 }

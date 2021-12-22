@@ -84,12 +84,13 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             }
             builder.AppendLine("}");
         }
-        public void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public void GenerateMethod(IndentedStringBuilder builder)
         {
             var name = PascalCase(customSqlModel.MethodName);
-            var requestModelName = name + "RequestModel";
+            var requestModel =  name + "RequestModel";
+            var requestModelName = requestModel.Camelize();
             var responseModelName = name + "ResponseModel";
-            builder.AppendLine($"public async Task<List<{responseModelName}>> {name}({requestModelName} {requestModelName})");
+            builder.AppendLine($"public static async Task<List<{responseModelName}>> {name}(this DbConnection connection, {requestModel} {requestModelName}, DbTransaction transaction = null, int? timeout = null)");
             builder.AppendLine("{");
             using (builder.Indent())
             {
@@ -98,54 +99,48 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                     var propertyName = $"{property.Name.Pluralize()}Joined";
                     builder.AppendLine($"var {propertyName} = string.Join(\",\", {requestModelName}?.{property.Name}.Select((x,y) => \"@{property.Name}\" + y.ToString()).ToArray());");
                 }
-                GenerateSql(builder);
-                builder.AppendLine($"using(var connection = new MySqlConnection({connectionString}))");
+                var sqlBuilder = new IndentedStringBuilder();
+                GenerateSql(sqlBuilder);
+                builder.AppendLine(sqlBuilder.ToString());
+                builder.AppendLine("var command = connection.CreateCommand(sql, transaction, timeout);");
+                foreach (var property in customSqlModel.EqualBindings)
+                {
+                    if (property.hasDefault)
+                    {
+                        builder.AppendLine($"command.CreateParameter(\"{property.Name}\", {property.DefaultValue});");
+                    }
+                    else
+                    {
+                        builder.AppendLine($"command.CreateParameter(\"{property.Name}\", {requestModelName}.{property.Value});");
+                    }
+                }
+                foreach (var property in customSqlModel.InBindings)
+                {
+                    var propertyName = $"{property.Name.Pluralize()}Parameters";
+                    builder.AppendLine($"{requestModelName}?.{property.Name}.Select((x,y) => command.CreateParameter(\"@{property.Name}\" + y.ToString(), x)).ToArray();");
+                }
+                builder.AppendLine($"List<{responseModelName}> results = new List<{responseModelName}>();");
+                builder.AppendLine("var reader = await command.ExecuteReaderAsync();");
+                builder.AppendLine("while (await reader.ReadAsync())");
                 builder.AppendLine("{");
                 using (builder.Indent())
                 {
-                    builder.AppendLine("await connection.OpenAsync();");
-                    builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
-                    foreach (var property in customSqlModel.EqualBindings)
+                    builder.AppendLine($"{responseModelName} result = new {responseModelName}();");
+                    for (var i = 0; i < customSqlModel.Projections.Count; i++)
                     {
-                        if (property.hasDefault)
-                        {
-                            builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {property.DefaultValue});");
-                        }
-                        else
-                        {
-                            builder.AppendLine($"cmd.Parameters.AddWithValue(\"{property.Name}\", {requestModelName}.{property.Value});");
-                        }
+                        var property = customSqlModel.Projections[i];
+                        var type = property.IsNullable && property.IsValueType ? property.Type + "?" : property.Type;
+                        var propertyName = property.Table != null ? property.Table.Name.Singularize().Pascalize() + "." + property.Name : property.Name;
+                        builder.Append($"result.{propertyName} = ");
+                        if (property.IsNullable)
+                            builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");
+                        builder.AppendLine($"({type})reader[{i}];");
                     }
-                    foreach (var property in customSqlModel.InBindings)
-                    {
-                        var propertyName = $"{property.Name.Pluralize()}Parameters";
-                        builder.AppendLine($"var {propertyName} = {requestModelName}?.{property.Name}.Select((x,y) => new MySqlParameter(\"@{property.Name}\" + y.ToString(), x)).ToArray();");
-                        builder.AppendLine($"cmd.Parameters.AddRange({propertyName});");
-                    }
-                    builder.AppendLine($"List<{responseModelName}> results = new List<{responseModelName}>();");
-                    builder.AppendLine("var reader = await cmd.ExecuteReaderAsync();");
-                    builder.AppendLine("while (await reader.ReadAsync())");
-                    builder.AppendLine("{");
-                    using (builder.Indent())
-                    {
-                        builder.AppendLine($"{responseModelName} result = new {responseModelName}();");
-                        for (var i = 0; i < customSqlModel.Projections.Count; i++)
-                        {
-                            var property = customSqlModel.Projections[i];
-                            var type = property.IsNullable && property.IsValueType ? property.Type + "?" : property.Type;
-                            var propertyName = property.Table != null ? property.Table.Name.Singularize().Pascalize() + "." + property.Name : property.Name;
-                            builder.Append($"result.{propertyName} = ");
-                            if (property.IsNullable)
-                                builder.Append($"Convert.IsDBNull(reader[{i}]) ? null : ");
-                            builder.AppendLine($"({type})reader[{i}];");
-                        }
-                        builder.AppendLine("results.Add(result);");
-                    }
-                    builder.AppendLine("}");
-                    builder.AppendLine("reader.Close();");
-                    builder.AppendLine("return results;");
+                    builder.AppendLine("results.Add(result);");
                 }
                 builder.AppendLine("}");
+                builder.AppendLine("reader.Close();");
+                builder.AppendLine("return results;");
             }
             builder.AppendLine("}");
         }

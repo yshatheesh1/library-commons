@@ -9,26 +9,54 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MySqlConnector;
+using System.Data;
+using System.Data.Common;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ActionRepository
+    public static class ActionRepository
     {
-        private readonly string _connectionString;
-        public ActionRepository(string connectionString){ this._connectionString = connectionString; }
-        public async Task<ActionModel> SelectAction(Int64 Id)
+        public static async Task<ActionModel> SelectAction(this DbConnection connection, ActionKey actionKey, DbTransaction transaction = null, int? timeout = null)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
+            string sql = @"SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", actionKey.Id);
+            if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync();
-                string sql = @"SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await GetActionResultSet(cmd);
-            }
+            return await GetActionResultSet(command);
         }
-        private async Task<ActionModel> GetActionResultSet(MySqlCommand cmd, ActionModel result = null)
+        public static async Task<ActionModel> InsertAction(this DbConnection connection, ActionModel actionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"INSERT INTO `Actions` (`ActionId`, `Name`) VALUES (@ActionId, @Name);
+SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID()";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@ActionId", actionModel.ActionId);
+            command.CreateParameter("@Name", actionModel.Name);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await GetActionResultSet(command, actionModel);
+        }
+        public static async Task<int> UpdateAction(this DbConnection connection, ActionModel actionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId, `a`.`Name` = @Name WHERE `a`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", actionModel.Id);
+            command.CreateParameter("@ActionId", actionModel.ActionId);
+            command.CreateParameter("@Name", actionModel.Name);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<int> DeleteAction(this DbConnection connection, ActionKey actionKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            string sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", actionKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        private static async Task<ActionModel> GetActionResultSet(DbCommand cmd, ActionModel result = null)
         {
             var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -41,42 +69,22 @@ namespace BBCoders.Example.DataServices
             reader.Close();
             return result;
         }
-        public async Task<ActionModel> InsertAction(ActionModel ActionModel)
+        private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"INSERT INTO `Actions` (`ActionId`, `Name`) VALUES (@ActionId, @Name);
-                SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID()";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@ActionId", ActionModel.ActionId);
-                cmd.Parameters.AddWithValue("@Name", ActionModel.Name);
-                return await GetActionResultSet(cmd, ActionModel);
-            }
+            var dbCommand = connection.CreateCommand();
+            dbCommand.CommandText = sql;
+            dbCommand.CommandType = CommandType.Text;
+            dbCommand.Transaction = transaction;
+            dbCommand.CommandTimeout = timeout.HasValue ? timeout.Value : dbCommand.CommandTimeout;
+            return dbCommand;
         }
-        public async Task<int> UpdateAction(ActionModel ActionModel)
+        private static DbParameter CreateParameter(this DbCommand command, string name, object value)
         {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId, `a`.`Name` = @Name WHERE `a`.`Id` = @Id;";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", ActionModel.Id);
-                cmd.Parameters.AddWithValue("@ActionId", ActionModel.ActionId);
-                cmd.Parameters.AddWithValue("@Name", ActionModel.Name);
-                return await cmd.ExecuteNonQueryAsync();
-            }
-        }
-        public async Task<int> DeleteAction(Int64 Id)
-        {
-            using(var connection = new MySqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
-                var cmd = new MySqlCommand(sql, connection);
-                cmd.Parameters.AddWithValue("@Id", Id);
-                return await cmd.ExecuteNonQueryAsync();
-            }
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = name;
+            parameter.Value = value;
+            command.Parameters.Add(parameter);
+            return parameter;
         }
     }
 }

@@ -10,6 +10,10 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
+    public class ScheduleKey
+    {
+        public Int64 Id { get; set; }
+    }
     public class ScheduleModel
     {
         public Int64 Id { get; set; }

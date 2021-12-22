@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using BBCoders.Commons.Utilities;
 
 namespace BBCoders.Commons.Utilities.Commands
 {
@@ -130,7 +129,7 @@ namespace BBCoders.Commons.Utilities.Commands
                 buildExtensionsDir,
                 Path.GetFileName(file) + ".BBCoders.Commons.Utilities.targets");
             using (var input = typeof(Project).Assembly.GetManifestResourceStream(
-                "BBCoders.Commons.Tools.BBCoders.Commons.Utilities.targets")!)
+                "BBCoders.Commons.Utilities.BBCoders.Commons.Utilities.targets")!)
             using (var output = File.OpenWrite(efTargetsPath))
             {
                 // NB: Copy always in case it changes

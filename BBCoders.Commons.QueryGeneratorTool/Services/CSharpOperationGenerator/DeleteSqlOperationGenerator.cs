@@ -21,36 +21,27 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
 
         public override void GenerateModel(IndentedStringBuilder builder)
         {
+            GenerateInputModel(builder);
+            GenerateOutputModel(builder);
         }
 
-        public override void GenerateMethod(IndentedStringBuilder builder, string connectionString)
+        public override void GenerateMethod(IndentedStringBuilder builder)
         {
             var tableName = GetEntityName();
             var primaryKeyProperties = _table.PrimaryKey.Columns.ToDictionary(x => x.PropertyMappings.First().Property, y => y);
-            var inputs = string.Join(", ", primaryKeyProperties.Keys.Select(x => getTypeName(x) + " " + x.Name));
-            builder.AppendLine($"public async Task<int> Delete{tableName}({inputs})");
-            builder.AppendLine("{");
-            using (builder.Indent())
+            var sqlBuilder = new IndentedStringBuilder();
+            GenerateSql(sqlBuilder);
+            var methodOp = new MethodOperation()
             {
-                // method implementation
-                builder.AppendLine($"using(var connection = new MySqlConnection({connectionString}))");
-                builder.AppendLine("{");
-                using (builder.Indent())
-                {
-                    builder.AppendLine("await connection.OpenAsync();");
-                    builder.Append("string sql = @\"");
-                    GenerateSql(builder);
-                    builder.AppendLine("\";");
-                    builder.AppendLine($"var cmd = new MySqlCommand(sql, connection);");
-                    foreach (var property in primaryKeyProperties.Keys)
-                    {
-                        builder.AppendLine($"cmd.Parameters.AddWithValue(\"@{primaryKeyProperties[property].Name}\", {property.Name});");
-                    }
-                    builder.AppendLine("return await cmd.ExecuteNonQueryAsync();");
-                }
-                builder.AppendLine("}");
-            }
-            builder.AppendLine("}");
+                MethodName = "Delete" + tableName,
+                InputModel = GetInputModelName(),
+                InputModelParameters = primaryKeyProperties.Select(x => new ModelParameter { Name = primaryKeyProperties[x.Key].Name, Value = x.Key.Name, DbType = _dependencies.relationalTypeMappingSource.FindMapping(x.Key.ClrType).DbType.ToString(), Type = getTypeName(x.Key) }).ToList(),
+                Sql = sqlBuilder.ToString(),
+                HasResult = false
+            };
+            GenerateBaseMethod(builder, methodOp);
+
+            GenerateResultSetMethod(builder);
         }
     }
 }

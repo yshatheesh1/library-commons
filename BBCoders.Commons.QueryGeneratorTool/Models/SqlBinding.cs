@@ -32,6 +32,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Models
         /// </summary>
         /// <value>get or set default value</value>
         public object DefaultValue { get; set; }
+
+        public string DbType { get; set; }
     }
 
 }

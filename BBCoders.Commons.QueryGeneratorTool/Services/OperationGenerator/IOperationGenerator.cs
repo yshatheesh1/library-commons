@@ -7,6 +7,6 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
     {
         void GenerateSql(IndentedStringBuilder builder);
         void GenerateModel(IndentedStringBuilder builder);
-        void GenerateMethod(IndentedStringBuilder builder, string connectionString);
+        void GenerateMethod(IndentedStringBuilder builder);
     }
 }

@@ -10,6 +10,10 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
+    public class FingerprintKey
+    {
+        public Int64 Id { get; set; }
+    }
     public class FingerprintModel
     {
         public Int64 Id { get; set; }
