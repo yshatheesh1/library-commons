@@ -99,7 +99,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             context.Schedules
                 .Include(x => x.scheduleSite)
                 .Include(x => x.Fingerprint)
-                .Include(x => x.Fingerprint.State).Where(x => x.ScheduleId == id).Select(x => new { Id = x.Id, Test = x.CreatedById, StateActive = true, state = x.Fingerprint.State }));
+                .Where(x => x.ScheduleId == id).Select(x => new { Id = x.Id, Test = x.CreatedById, StateActive = true, state = x.Fingerprint.State }));
             queryOperations.Add<Guid>("GetSheduleAsync2", (id) => 
             context.Schedules
                 .GroupBy(x => x.Id, (x, y)  =>  y.Count() ));

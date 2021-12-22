@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Reflection;
-using BBCoders.Commons.Tools;
 using BBCoders.Commons.Utilities;
+using BBCoders.Commons.Utilities.Commands;
 using Microsoft.Extensions.CommandLineUtils;
 
 namespace BBCoders.Commons.SourceGeneratorTool

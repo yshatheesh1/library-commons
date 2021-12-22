@@ -8,8 +8,8 @@ namespace BBCoders.Commons.QueryGenerator
     {
         public void Execute(SourceContext context)
         {
-            context.Add(CreateQueryDelegateSource(), "QueryDelegatesT");
-            context.Add(CreateQueryExtensionsSource(), "QueryOperationsExtensionsT");
+            context.Add(CreateQueryDelegateSource(), "QueryDelegates");
+            context.Add(CreateQueryExtensionsSource(), "QueryOperationsExtensions");
         }
 
         public string CreateQueryDelegateSource()

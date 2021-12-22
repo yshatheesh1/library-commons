@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BBCoders.Commons.QueryGenerator" Version="0.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -21,8 +22,8 @@
   <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />  
 </ItemGroup>
 
-  <ItemGroup>
+  <!-- <ItemGroup>
     <ProjectReference Include="..\BBCoders.Commons.QueryGenerator\BBCoders.Commons.QueryGenerator.csproj" />
-  </ItemGroup> 
+  </ItemGroup>  -->
 
 </Project>

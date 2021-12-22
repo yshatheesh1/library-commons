@@ -3,10 +3,21 @@ using System.Diagnostics;
 using System.Text;
 using BBCoders.Commons.Utilities;
 
-namespace BBCoders.Commons.Tools
+namespace BBCoders.Commons.Utilities.Commands
 {
-    internal static class Exe
+    /// <summary>
+    /// Executes command
+    /// </summary>
+    public static class Exe
     {
+        /// <summary>
+        /// executes given command using c# process
+        /// </summary>
+        /// <param name="executable"></param>
+        /// <param name="args"></param>
+        /// <param name="workingDirectory"></param>
+        /// <param name="interceptOutput"></param>
+        /// <returns></returns>
         public static int Run(
             string executable,
             IReadOnlyList<string> args,

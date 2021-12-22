@@ -4,8 +4,11 @@ using System.IO;
 using System.Linq;
 using BBCoders.Commons.Utilities;
 
-namespace BBCoders.Commons.Tools
+namespace BBCoders.Commons.Utilities.Commands
 {
+    /// <summary>
+    /// Gets current project details
+    /// </summary>
     public class Project
     {
         private readonly string _file;
@@ -13,6 +16,13 @@ namespace BBCoders.Commons.Tools
         private readonly string _configuration;
         private readonly string _runtime;
 
+        /// <summary>
+        /// constructor
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="framework"></param>
+        /// <param name="configuration"></param>
+        /// <param name="runtime"></param>
         public Project(string file, string framework, string configuration, string runtime)
         {
             _file = file;
@@ -21,21 +31,86 @@ namespace BBCoders.Commons.Tools
             _runtime = runtime;
             ProjectName = Path.GetFileName(file);
         }
+        /// <summary>
+        /// Project Name
+        /// </summary>
+        /// <value></value>
         public string ProjectName { get; }
+        /// <summary>
+        /// Assembly Name
+        /// </summary>
+        /// <value></value>
         public string AssemblyName { get; set; }
+        /// <summary>
+        /// Language
+        /// </summary>
+        /// <value></value>
         public string Language { get; set; }
+        /// <summary>
+        /// Output path
+        /// </summary>
+        /// <value></value>
         public string OutputPath { get; set; }
+        /// <summary>
+        /// targeted platform
+        /// </summary>
+        /// <value></value>
         public string PlatformTarget { get; set; }
+        /// <summary>
+        /// project asset files
+        /// </summary>
+        /// <value></value>
         public string ProjectAssetsFile { get; set; }
+        /// <summary>
+        /// project directory
+        /// </summary>
+        /// <value></value>
         public string ProjectDir { get; set; }
+        /// <summary>
+        /// root namespace
+        /// </summary>
+        /// <value></value>
         public string RootNamespace { get; set; }
+        /// <summary>
+        /// runtime version
+        /// </summary>
+        /// <value></value>
         public string RuntimeFrameworkVersion { get; set; }
+        /// <summary>
+        /// target file name
+        /// </summary>
+        /// <value></value>
         public string TargetFileName { get; set; }
+        /// <summary>
+        /// target framework monitor
+        /// </summary>
+        /// <value></value>
         public string TargetFrameworkMoniker { get; set; }
+        /// <summary>
+        /// is nullable enabled
+        /// </summary>
+        /// <value></value>
         public string Nullable { get; set; }
+        /// <summary>
+        /// target framework
+        /// </summary>
+        /// <value></value>
         public string TargetFramework { get; set; }
+        /// <summary>
+        /// target platform identifier
+        /// </summary>
+        /// <value></value>
         public string TargetPlatformIdentifier { get; set; }
 
+        /// <summary>
+        /// method that retrieves project information
+        /// </summary>
+        /// <param name="file"></param>
+        /// <param name="buildExtensionsDir"></param>
+        /// <param name="framework"></param>
+        /// <param name="configuration"></param>
+        /// <param name="runtime"></param>
+        /// <returns></returns>
         public static Project FromFile(
             string file = null,
             string buildExtensionsDir = null,
@@ -53,9 +128,9 @@ namespace BBCoders.Commons.Tools
 
             var efTargetsPath = Path.Combine(
                 buildExtensionsDir,
-                Path.GetFileName(file) + ".BBCoders.Commons.Tools.targets");
+                Path.GetFileName(file) + ".BBCoders.Commons.Utilities.targets");
             using (var input = typeof(Project).Assembly.GetManifestResourceStream(
-                "BBCoders.Commons.Tools.BBCoders.Commons.Tools.targets")!)
+                "BBCoders.Commons.Tools.BBCoders.Commons.Utilities.targets")!)
             using (var output = File.OpenWrite(efTargetsPath))
             {
                 // NB: Copy always in case it changes
@@ -155,7 +230,9 @@ namespace BBCoders.Commons.Tools
             return projects[0];
         } 
 
-
+        /// <summary>
+        /// Builds given project
+        /// </summary>
         public void Build()
         {
             var args = new List<string> { "build" };

@@ -6,4 +6,9 @@
     <NuspecFile>BBCoders.Commons.Utilities.nuspec</NuspecFile> 
   </PropertyGroup>
 
+    
+  <ItemGroup>
+    <EmbeddedResource Include="BBCoders.Commons.Utilities.targets" />
+  </ItemGroup>
+
 </Project>
