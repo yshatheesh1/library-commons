@@ -10,14 +10,10 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
-    public class StateKey
+    public class GetSheduleAsync2RequestModel
     {
-        public Int64 Id { get; set; }
-    }
-    public class StateModel
-    {
-        public Int64 Id { get; set; }
-        public String Name { get; set; }
-        public Byte[] StateId { get; set; }
+        public GetSheduleAsync2RequestModel()
+        {
+        }
     }
 }

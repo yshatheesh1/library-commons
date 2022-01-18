@@ -24,7 +24,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Name = "Test",
                 ScheduleSiteId = Guid.NewGuid().ToByteArray()
             };
-            await repository.InsertScheduleSite(scheduleSiteModel);
+            scheduleSiteModel = await repository.InsertScheduleSite(scheduleSiteModel);
             // assert if data is inserted
             Assert.NotNull(scheduleSiteModel.Id);
             // assert update
@@ -32,7 +32,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             scheduleSiteModel.Name = "Test2";
             scheduleSiteModel.ScheduleSiteId = Guid.NewGuid().ToByteArray();
             var updatedStatus = await repository.UpdateScheduleSite(scheduleSiteModel);
-            Assert.Equal(1, updatedStatus);
+            Assert.Equal(updatedStatus.Id, scheduleSiteModel.Id);
+            Assert.Equal(updatedStatus.Name, scheduleSiteModel.Name);
+            Assert.Equal(updatedStatus.IsActive, scheduleSiteModel.IsActive);
+            Assert.Equal(updatedStatus.ScheduleSiteId, scheduleSiteModel.ScheduleSiteId);
 
             var updated = await repository.SelectScheduleSite(new ScheduleSiteKey() { Id = scheduleSiteModel.Id });
             Assert.Equal(updated.Id, scheduleSiteModel.Id);
@@ -54,7 +57,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Name = "Test",
                 StateId = Guid.NewGuid().ToByteArray()
             };
-            await stateRepository.InsertState(state);
+            state = await stateRepository.InsertState(state);
             Assert.NotNull(state.Id);
             Assert.Equal(state.Name, "Test");
             var fingerprintModel = new FingerprintModel()
@@ -68,7 +71,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 StateId = state.Id,
                 CreatedDate = DateTime.Today
             };
-            await repository.InsertFingerprint(fingerprintModel);
+            fingerprintModel = await repository.InsertFingerprint(fingerprintModel);
             Assert.NotNull(fingerprintModel.Id);
             Assert.Equal(fingerprintModel.CreatedById, 1);
             Assert.Equal(fingerprintModel.IsActive, true);
@@ -80,7 +83,11 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             fingerprintModel.IsActive = false;
             fingerprintModel.NmlsId = 345;
             var updatedStatus = await repository.UpdateFingerprint(fingerprintModel);
-            Assert.Equal(1, updatedStatus);
+            Assert.Equal(updatedStatus.Id, fingerprintModel.Id);
+            Assert.Equal(updatedStatus.CreatedById, fingerprintModel.CreatedById);
+            Assert.Equal(updatedStatus.IsActive, fingerprintModel.IsActive);
+            Assert.Equal(updatedStatus.LastUpdatedById, fingerprintModel.LastUpdatedById);
+
             var deleteFingerprintStatus = await repository.DeleteFingerprint(new FingerprintKey() { Id = fingerprintModel.Id });
             Assert.Equal(1, deleteFingerprintStatus);
             var deleteStateStatus = await stateRepository.DeleteState(new StateKey() { Id = state.Id });
@@ -97,9 +104,9 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Name = "Test",
                 ScheduleSiteId = Guid.NewGuid().ToByteArray()
             };
-            await repository.InsertScheduleSite(scheduleSiteModel);
+            scheduleSiteModel = await repository.InsertScheduleSite(scheduleSiteModel);
             var getScheduleSiteStatuses = await repository.GetSheduleSiteStatus(new GetSheduleSiteStatusRequestModel() { id = scheduleSiteModel.ScheduleSiteId });
-            Assert.Equal(1, getScheduleSiteStatuses.Count);
+
             var getScheduleSiteStatus = getScheduleSiteStatuses.First();
             Assert.Equal(scheduleSiteModel.Id, getScheduleSiteStatus.ScheduleSite.Id);
             Assert.Equal(scheduleSiteModel.Name, getScheduleSiteStatus.ScheduleSite.Name);
@@ -121,7 +128,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Name = "Test",
                 ScheduleSiteId = Guid.NewGuid().ToByteArray()
             };
-            await repository.InsertScheduleSite(scheduleSiteModel);
+            scheduleSiteModel = await repository.InsertScheduleSite(scheduleSiteModel);
 
             var actionRepository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
             var actionModel = await actionRepository.InsertAction(new ActionModel()
@@ -143,7 +150,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 ActionId = actionModel.Id
             };
 
-            await scheduleRepository.InsertSchedule(schedule);
+            schedule = await scheduleRepository.InsertSchedule(schedule);
 
             Assert.NotNull(schedule.Id);
 
@@ -176,7 +183,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 ScheduleDate = DateTime.Today,
                 ActionId = actionModel.Id
             };
-            await scheduleRepository.InsertSchedule(anotherSchedule);
+            anotherSchedule = await scheduleRepository.InsertSchedule(anotherSchedule);
             var getScheduleActionAndLocations = await scheduleRepository.GetScheduleActionAndLocation(new GetScheduleActionAndLocationRequestModel()
             {
                 ActionId = actionModel.ActionId,
@@ -218,7 +225,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Name = "Test",
                 StateId = Guid.NewGuid().ToByteArray()
             };
-            await stateRepository.InsertState(state);
+            state = await stateRepository.InsertState(state);
             Assert.NotNull(state.Id);
             Assert.Equal(state.Name, "Test");
             var repository = new MySqlConnection(TestContextDesignTimeBuilder.ConnectionString);
@@ -244,16 +251,19 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 CreatedDate = DateTime.Today,
                 StateId = state.Id
             };
-            await repository.InsertFingerprint(fingerprintModel1);
-            await repository.InsertFingerprint(fingerprintModel2);
+            var fingerprintModels = await repository.InsertBatchFingerprint(new List<FingerprintModel>() { fingerprintModel1, fingerprintModel2 });
+            fingerprintModel1 = fingerprintModels[0];
+            fingerprintModel2 = fingerprintModels[1];
 
             var response = await repository.GetFingerprintByGuids(new GetFingerprintByGuidsRequestModel()
             {
                 test = new List<Byte[]>() { fingerprintModel1.FingerprintId, fingerprintModel2.FingerprintId }
             });
             Assert.Equal(2, response.Count);
-            await repository.DeleteFingerprint(new FingerprintKey() { Id =  fingerprintModel1.Id });
-            await repository.DeleteFingerprint(new FingerprintKey() { Id =  fingerprintModel2.Id });
+            await repository.DeleteBatchFingerprint(new List<FingerprintKey>(){
+                new FingerprintKey() { Id = fingerprintModel1.Id },
+                new FingerprintKey() { Id = fingerprintModel2.Id }
+            });
         }
     }
 }

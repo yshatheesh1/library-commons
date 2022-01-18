@@ -11,63 +11,183 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
+using System.Text;
 
 namespace BBCoders.Example.DataServices
 {
     public static class StateRepository
     {
-        public static async Task<StateModel> SelectState(this DbConnection connection, StateKey stateKey, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<StateModel>> SelectBatchState(this DbConnection connection, List<StateKey> StateKey, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT * FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+            var IdsJoined = string.Join(",", StateKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @");";
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", stateKey.Id);
+            for (var i = 0; i< StateKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, StateKey[i].Id);
+            }
             if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync();
-            return await GetStateResultSet(command);
-        }
-        public static async Task<StateModel> InsertState(this DbConnection connection, StateModel stateModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name, @StateId);
-SELECT * FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Name", stateModel.Name);
-            command.CreateParameter("@StateId", stateModel.StateId);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetStateResultSet(command, stateModel);
-        }
-        public static async Task<int> UpdateState(this DbConnection connection, StateModel stateModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", stateModel.Id);
-            command.CreateParameter("@Name", stateModel.Name);
-            command.CreateParameter("@StateId", stateModel.StateId);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        public static async Task<int> DeleteState(this DbConnection connection, StateKey stateKey, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", stateKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        private static async Task<StateModel> GetStateResultSet(DbCommand cmd, StateModel result = null)
-        {
-            var reader = await cmd.ExecuteReaderAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if(result == null) result = new StateModel();
-                result.Id = (Int64)reader["Id"];
-                result.Name = Convert.IsDBNull(reader["Name"]) ? null : (String)reader["Name"];
-                result.StateId = (Byte[])reader["StateId"];
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
             }
             reader.Close();
-            return result;
+            return results;
+        }
+        public static async Task<List<StateModel>> InsertBatchState(this DbConnection connection, List<StateModel> StateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", StateModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< StateModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name{i}, @StateId{i}); SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< StateModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, StateModel[i].Id);
+                command.CreateParameter("@Name" + i, StateModel[i].Name);
+                command.CreateParameter("@StateId" + i, StateModel[i].StateId);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<StateModel>> UpdateBatchState(this DbConnection connection, List<StateModel> StateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", StateModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< StateModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"UPDATE `States` AS `s` SET `s`.`Name` = @Name{i}, `s`.`StateId` = @StateId{i} WHERE `s`.`Id` = IdsJoined;SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id{i};");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< StateModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, StateModel[i].Id);
+                command.CreateParameter("@Name" + i, StateModel[i].Name);
+                command.CreateParameter("@StateId" + i, StateModel[i].StateId);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<int> DeleteBatchState(this DbConnection connection, List<StateKey> StateKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", StateKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @")";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< StateKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, StateKey[i].Id);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<StateModel> SelectState(this DbConnection connection, StateKey StateKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", StateKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<StateModel> InsertState(this DbConnection connection, StateModel StateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"INSERT INTO States (`Name`, `StateId`) VALUES (@Name, @StateId);
+            SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Name", StateModel.Name);
+            command.CreateParameter("@StateId", StateModel.StateId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<StateModel> UpdateState(this DbConnection connection, StateModel StateModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", StateModel.Id);
+            command.CreateParameter("@Name", StateModel.Name);
+            command.CreateParameter("@StateId", StateModel.StateId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<StateModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new StateModel();
+                result.Id = (Int64)reader[0];
+                result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
+                result.StateId = (Byte[])reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<int> DeleteState(this DbConnection connection, StateKey StateKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", StateKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
         }
         private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
         {

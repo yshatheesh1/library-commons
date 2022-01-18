@@ -39,6 +39,7 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     BuildProject(project, _noBuild);
                     var targetDir = Path.GetFullPath(Path.Combine(project.ProjectDir, project.OutputPath));
                     var targetPath = Path.Combine(targetDir, project.TargetFileName);
+                    Reporter.WriteInformation("target path - " + targetPath);
                     var assembly = Assembly.LoadFrom(targetPath);
                     new DefaultQueryOperations(
                                 assembly,

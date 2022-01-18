@@ -11,98 +11,268 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
+using System.Text;
 
 namespace BBCoders.Example.DataServices
 {
     public static class ScheduleRepository
     {
-        public static async Task<ScheduleModel> SelectSchedule(this DbConnection connection, ScheduleKey scheduleKey, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<ScheduleModel>> SelectBatchSchedule(this DbConnection connection, List<ScheduleKey> ScheduleKey, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id";
+            var IdsJoined = string.Join(",", ScheduleKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @");";
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", scheduleKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetScheduleResultSet(command);
-        }
-        public static async Task<ScheduleModel> InsertSchedule(this DbConnection connection, ScheduleModel scheduleModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"INSERT INTO `Schedules` (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId, @CreatedById, @CreatedDate, @FingerPrintId, @LastUpdatedById, @LastUpdatedDate, @ScheduleDate, @ScheduleId, @ScheduleSiteId);
-SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@ActionId", scheduleModel.ActionId);
-            command.CreateParameter("@CreatedById", scheduleModel.CreatedById);
-            command.CreateParameter("@CreatedDate", scheduleModel.CreatedDate);
-            command.CreateParameter("@FingerPrintId", scheduleModel.FingerPrintId);
-            command.CreateParameter("@LastUpdatedById", scheduleModel.LastUpdatedById);
-            command.CreateParameter("@LastUpdatedDate", scheduleModel.LastUpdatedDate);
-            command.CreateParameter("@ScheduleDate", scheduleModel.ScheduleDate);
-            command.CreateParameter("@ScheduleId", scheduleModel.ScheduleId);
-            command.CreateParameter("@ScheduleSiteId", scheduleModel.ScheduleSiteId);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetScheduleResultSet(command, scheduleModel);
-        }
-        public static async Task<int> UpdateSchedule(this DbConnection connection, ScheduleModel scheduleModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId, `s`.`CreatedById` = @CreatedById, `s`.`CreatedDate` = @CreatedDate, `s`.`FingerPrintId` = @FingerPrintId, `s`.`LastUpdatedById` = @LastUpdatedById, `s`.`LastUpdatedDate` = @LastUpdatedDate, `s`.`ScheduleDate` = @ScheduleDate, `s`.`ScheduleId` = @ScheduleId, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", scheduleModel.Id);
-            command.CreateParameter("@ActionId", scheduleModel.ActionId);
-            command.CreateParameter("@CreatedById", scheduleModel.CreatedById);
-            command.CreateParameter("@CreatedDate", scheduleModel.CreatedDate);
-            command.CreateParameter("@FingerPrintId", scheduleModel.FingerPrintId);
-            command.CreateParameter("@LastUpdatedById", scheduleModel.LastUpdatedById);
-            command.CreateParameter("@LastUpdatedDate", scheduleModel.LastUpdatedDate);
-            command.CreateParameter("@ScheduleDate", scheduleModel.ScheduleDate);
-            command.CreateParameter("@ScheduleId", scheduleModel.ScheduleId);
-            command.CreateParameter("@ScheduleSiteId", scheduleModel.ScheduleSiteId);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        public static async Task<int> DeleteSchedule(this DbConnection connection, ScheduleKey scheduleKey, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", scheduleKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        private static async Task<ScheduleModel> GetScheduleResultSet(DbCommand cmd, ScheduleModel result = null)
-        {
-            var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            for (var i = 0; i< ScheduleKey.Count(); i++)
             {
-                if(result == null) result = new ScheduleModel();
-                result.Id = (Int64)reader["Id"];
-                result.ActionId = Convert.IsDBNull(reader["ActionId"]) ? null : (Int64?)reader["ActionId"];
-                result.CreatedById = (Int64)reader["CreatedById"];
-                result.CreatedDate = (DateTime)reader["CreatedDate"];
-                result.FingerPrintId = Convert.IsDBNull(reader["FingerPrintId"]) ? null : (Int64?)reader["FingerPrintId"];
-                result.LastUpdatedById = (Int64)reader["LastUpdatedById"];
-                result.LastUpdatedDate = (DateTime)reader["LastUpdatedDate"];
-                result.ScheduleDate = (DateTime)reader["ScheduleDate"];
-                result.ScheduleId = (Byte[])reader["ScheduleId"];
-                result.ScheduleSiteId = (Int64)reader["ScheduleSiteId"];
+                command.CreateParameter("@Id" + i, ScheduleKey[i].Id);
             }
-            reader.Close();
-            return result;
-        }
-        public static async Task<List<GetSheduleActionResponseModel>> GetSheduleAction(this DbConnection connection, GetSheduleActionRequestModel getSheduleActionRequestModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"SELECT `s`.`ActionId` AS `action`, `s`.`Id` AS `id`, `s`.`ScheduleId` AS `schedule_id`
-				FROM `Schedules` AS `s`
-				WHERE `s`.`ScheduleId` = @__Value_0";
-
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@__Value_0", getSheduleActionRequestModel.id);
-            List<GetSheduleActionResponseModel> results = new List<GetSheduleActionResponseModel>();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetSheduleActionResponseModel result = new GetSheduleActionResponseModel();
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<ScheduleModel>> InsertBatchSchedule(this DbConnection connection, List<ScheduleModel> ScheduleModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ScheduleModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< ScheduleModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"INSERT INTO `Schedules` (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId{i}, @CreatedById{i}, @CreatedDate{i}, @FingerPrintId{i}, @LastUpdatedById{i}, @LastUpdatedDate{i}, @ScheduleDate{i}, @ScheduleId{i}, @ScheduleSiteId{i}); SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ScheduleModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ScheduleModel[i].Id);
+                command.CreateParameter("@ActionId" + i, ScheduleModel[i].ActionId);
+                command.CreateParameter("@CreatedById" + i, ScheduleModel[i].CreatedById);
+                command.CreateParameter("@CreatedDate" + i, ScheduleModel[i].CreatedDate);
+                command.CreateParameter("@FingerPrintId" + i, ScheduleModel[i].FingerPrintId);
+                command.CreateParameter("@LastUpdatedById" + i, ScheduleModel[i].LastUpdatedById);
+                command.CreateParameter("@LastUpdatedDate" + i, ScheduleModel[i].LastUpdatedDate);
+                command.CreateParameter("@ScheduleDate" + i, ScheduleModel[i].ScheduleDate);
+                command.CreateParameter("@ScheduleId" + i, ScheduleModel[i].ScheduleId);
+                command.CreateParameter("@ScheduleSiteId" + i, ScheduleModel[i].ScheduleSiteId);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<ScheduleModel>> UpdateBatchSchedule(this DbConnection connection, List<ScheduleModel> ScheduleModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ScheduleModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< ScheduleModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId{i}, `s`.`CreatedById` = @CreatedById{i}, `s`.`CreatedDate` = @CreatedDate{i}, `s`.`FingerPrintId` = @FingerPrintId{i}, `s`.`LastUpdatedById` = @LastUpdatedById{i}, `s`.`LastUpdatedDate` = @LastUpdatedDate{i}, `s`.`ScheduleDate` = @ScheduleDate{i}, `s`.`ScheduleId` = @ScheduleId{i}, `s`.`ScheduleSiteId` = @ScheduleSiteId{i} WHERE `s`.`Id` = IdsJoined;SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id{i};");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ScheduleModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ScheduleModel[i].Id);
+                command.CreateParameter("@ActionId" + i, ScheduleModel[i].ActionId);
+                command.CreateParameter("@CreatedById" + i, ScheduleModel[i].CreatedById);
+                command.CreateParameter("@CreatedDate" + i, ScheduleModel[i].CreatedDate);
+                command.CreateParameter("@FingerPrintId" + i, ScheduleModel[i].FingerPrintId);
+                command.CreateParameter("@LastUpdatedById" + i, ScheduleModel[i].LastUpdatedById);
+                command.CreateParameter("@LastUpdatedDate" + i, ScheduleModel[i].LastUpdatedDate);
+                command.CreateParameter("@ScheduleDate" + i, ScheduleModel[i].ScheduleDate);
+                command.CreateParameter("@ScheduleId" + i, ScheduleModel[i].ScheduleId);
+                command.CreateParameter("@ScheduleSiteId" + i, ScheduleModel[i].ScheduleSiteId);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<int> DeleteBatchSchedule(this DbConnection connection, List<ScheduleKey> ScheduleKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ScheduleKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @")";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ScheduleKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ScheduleKey[i].Id);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<ScheduleModel> SelectSchedule(this DbConnection connection, ScheduleKey ScheduleKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ScheduleKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<ScheduleModel> InsertSchedule(this DbConnection connection, ScheduleModel ScheduleModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"INSERT INTO Schedules (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId, @CreatedById, @CreatedDate, @FingerPrintId, @LastUpdatedById, @LastUpdatedDate, @ScheduleDate, @ScheduleId, @ScheduleSiteId);
+            SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@ActionId", ScheduleModel.ActionId);
+            command.CreateParameter("@CreatedById", ScheduleModel.CreatedById);
+            command.CreateParameter("@CreatedDate", ScheduleModel.CreatedDate);
+            command.CreateParameter("@FingerPrintId", ScheduleModel.FingerPrintId);
+            command.CreateParameter("@LastUpdatedById", ScheduleModel.LastUpdatedById);
+            command.CreateParameter("@LastUpdatedDate", ScheduleModel.LastUpdatedDate);
+            command.CreateParameter("@ScheduleDate", ScheduleModel.ScheduleDate);
+            command.CreateParameter("@ScheduleId", ScheduleModel.ScheduleId);
+            command.CreateParameter("@ScheduleSiteId", ScheduleModel.ScheduleSiteId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<ScheduleModel> UpdateSchedule(this DbConnection connection, ScheduleModel ScheduleModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId, `s`.`CreatedById` = @CreatedById, `s`.`CreatedDate` = @CreatedDate, `s`.`FingerPrintId` = @FingerPrintId, `s`.`LastUpdatedById` = @LastUpdatedById, `s`.`LastUpdatedDate` = @LastUpdatedDate, `s`.`ScheduleDate` = @ScheduleDate, `s`.`ScheduleId` = @ScheduleId, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ScheduleModel.Id);
+            command.CreateParameter("@ActionId", ScheduleModel.ActionId);
+            command.CreateParameter("@CreatedById", ScheduleModel.CreatedById);
+            command.CreateParameter("@CreatedDate", ScheduleModel.CreatedDate);
+            command.CreateParameter("@FingerPrintId", ScheduleModel.FingerPrintId);
+            command.CreateParameter("@LastUpdatedById", ScheduleModel.LastUpdatedById);
+            command.CreateParameter("@LastUpdatedDate", ScheduleModel.LastUpdatedDate);
+            command.CreateParameter("@ScheduleDate", ScheduleModel.ScheduleDate);
+            command.CreateParameter("@ScheduleId", ScheduleModel.ScheduleId);
+            command.CreateParameter("@ScheduleSiteId", ScheduleModel.ScheduleSiteId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ScheduleModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ScheduleModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.CreatedById = (Int64)reader[2];
+                result.CreatedDate = (DateTime)reader[3];
+                result.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.LastUpdatedById = (Int64)reader[5];
+                result.LastUpdatedDate = (DateTime)reader[6];
+                result.ScheduleDate = (DateTime)reader[7];
+                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleSiteId = (Int64)reader[9];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<int> DeleteSchedule(this DbConnection connection, ScheduleKey ScheduleKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ScheduleKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<List<GetSheduleActionResponseModel>> GetSheduleAction(this DbConnection connection, GetSheduleActionRequestModel GetSheduleActionRequestModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"SELECT `s`.`ActionId` AS `action`, `s`.`Id` AS `id`, `s`.`ScheduleId` AS `schedule_id`
+				FROM `Schedules` AS `s`
+				WHERE `s`.`ScheduleId` = @__Value_0";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@@__Value_0", GetSheduleActionRequestModel.id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetSheduleActionResponseModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new GetSheduleActionResponseModel();
                 result.Schedule.action = Convert.IsDBNull(reader[0]) ? null : (Int64?)reader[0];
                 result.Schedule.id = (Int64)reader[1];
                 result.Schedule.schedule_id = (Byte[])reader[2];
@@ -111,20 +281,21 @@ SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
             reader.Close();
             return results;
         }
-        public static async Task<List<GetSheduleResponseModel>> GetShedule(this DbConnection connection, GetSheduleRequestModel getSheduleRequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetSheduleResponseModel>> GetShedule(this DbConnection connection, GetSheduleRequestModel GetSheduleRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
+            var sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
 				FROM `Schedules` AS `s`
 				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
 				WHERE `s`.`ScheduleId` = @__Value_0";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@__Value_0", getSheduleRequestModel.id);
-            List<GetSheduleResponseModel> results = new List<GetSheduleResponseModel>();
+            command.CreateParameter("@@__Value_0", GetSheduleRequestModel.id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetSheduleResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetSheduleResponseModel result = new GetSheduleResponseModel();
+                var result = new GetSheduleResponseModel();
                 result.Schedule.Id = (Int64)reader[0];
                 result.Schedule.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
                 result.Schedule.CreatedById = (Int64)reader[2];
@@ -144,22 +315,23 @@ SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
             reader.Close();
             return results;
         }
-        public static async Task<List<GetScheduleActionAndLocationResponseModel>> GetScheduleActionAndLocation(this DbConnection connection, GetScheduleActionAndLocationRequestModel getScheduleActionAndLocationRequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetScheduleActionAndLocationResponseModel>> GetScheduleActionAndLocation(this DbConnection connection, GetScheduleActionAndLocationRequestModel GetScheduleActionAndLocationRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `a`.`Id`, `a`.`ActionId`, `a`.`Name`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
+            var sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `a`.`Id`, `a`.`ActionId`, `a`.`Name`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`
 				FROM `Schedules` AS `s`
 				INNER JOIN `Actions` AS `a` ON `s`.`ActionId` = `a`.`Id`
 				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
 				WHERE (`a`.`ActionId` = @__Value_0) AND (`s0`.`ScheduleSiteId` = @__Value_1)";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@__Value_0", getScheduleActionAndLocationRequestModel.ActionId);
-            command.CreateParameter("@__Value_1", getScheduleActionAndLocationRequestModel.LocationId);
-            List<GetScheduleActionAndLocationResponseModel> results = new List<GetScheduleActionAndLocationResponseModel>();
+            command.CreateParameter("@@__Value_0", GetScheduleActionAndLocationRequestModel.ActionId);
+            command.CreateParameter("@@__Value_1", GetScheduleActionAndLocationRequestModel.LocationId);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetScheduleActionAndLocationResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetScheduleActionAndLocationResponseModel result = new GetScheduleActionAndLocationResponseModel();
+                var result = new GetScheduleActionAndLocationResponseModel();
                 result.Schedule.Id = (Int64)reader[0];
                 result.Schedule.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
                 result.Schedule.CreatedById = (Int64)reader[2];
@@ -182,44 +354,69 @@ SELECT * FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID()";
             reader.Close();
             return results;
         }
-        public static async Task<List<GetSheduleAsyncResponseModel>> GetSheduleAsync(this DbConnection connection, GetSheduleAsyncRequestModel getSheduleAsyncRequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetSheduleAsyncResponseModel>> GetSheduleAsync(this DbConnection connection, GetSheduleAsyncRequestModel GetSheduleAsyncRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT `s`.`Id`, `s`.`CreatedById` AS `Test`, TRUE AS `StateActive`, `s0`.`Id`, `s0`.`Name`, `s0`.`StateId`
+            var sql = @"SELECT `s`.`Id`, `s`.`ActionId`, `s`.`CreatedById`, `s`.`CreatedDate`, `s`.`FingerPrintId`, `s`.`LastUpdatedById`, `s`.`LastUpdatedDate`, `s`.`ScheduleDate`, `s`.`ScheduleId`, `s`.`ScheduleSiteId`, `s0`.`Id`, `s0`.`IsActive`, `s0`.`Name`, `s0`.`ScheduleSiteId`, `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`, `s1`.`Id`, `s1`.`Name`, `s1`.`StateId`
 				FROM `Schedules` AS `s`
+				INNER JOIN `ScheduleSites` AS `s0` ON `s`.`ScheduleSiteId` = `s0`.`Id`
 				LEFT JOIN `Fingerprint` AS `f` ON `s`.`FingerPrintId` = `f`.`Id`
-				LEFT JOIN `States` AS `s0` ON `f`.`StateId` = `s0`.`Id`
+				LEFT JOIN `States` AS `s1` ON `f`.`StateId` = `s1`.`Id`
 				WHERE `s`.`ScheduleId` = @__Value_0";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@__Value_0", getSheduleAsyncRequestModel.id);
-            List<GetSheduleAsyncResponseModel> results = new List<GetSheduleAsyncResponseModel>();
+            command.CreateParameter("@@__Value_0", GetSheduleAsyncRequestModel.id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetSheduleAsyncResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetSheduleAsyncResponseModel result = new GetSheduleAsyncResponseModel();
+                var result = new GetSheduleAsyncResponseModel();
                 result.Schedule.Id = (Int64)reader[0];
-                result.Schedule.Test = (Int64)reader[1];
-                result.StateActive = (Boolean)reader[2];
-                result.State.Id = Convert.IsDBNull(reader[3]) ? null : (Int64?)reader[3];
-                result.State.Name = Convert.IsDBNull(reader[4]) ? null : (String)reader[4];
-                result.State.StateId = Convert.IsDBNull(reader[5]) ? null : (Byte[])reader[5];
+                result.Schedule.ActionId = Convert.IsDBNull(reader[1]) ? null : (Int64?)reader[1];
+                result.Schedule.CreatedById = (Int64)reader[2];
+                result.Schedule.CreatedDate = (DateTime)reader[3];
+                result.Schedule.FingerPrintId = Convert.IsDBNull(reader[4]) ? null : (Int64?)reader[4];
+                result.Schedule.LastUpdatedById = (Int64)reader[5];
+                result.Schedule.LastUpdatedDate = (DateTime)reader[6];
+                result.Schedule.ScheduleDate = (DateTime)reader[7];
+                result.Schedule.ScheduleId = (Byte[])reader[8];
+                result.Schedule.ScheduleSiteId = (Int64)reader[9];
+                result.ScheduleSite.Id = (Int64)reader[10];
+                result.ScheduleSite.IsActive = (Boolean)reader[11];
+                result.ScheduleSite.Name = (String)reader[12];
+                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[13];
+                result.Fingerprint.Id = Convert.IsDBNull(reader[14]) ? null : (Int64?)reader[14];
+                result.Fingerprint.CreatedById = Convert.IsDBNull(reader[15]) ? null : (Int64?)reader[15];
+                result.Fingerprint.CreatedDate = Convert.IsDBNull(reader[16]) ? null : (DateTime?)reader[16];
+                result.Fingerprint.ExpirationDate = Convert.IsDBNull(reader[17]) ? null : (DateTime?)reader[17];
+                result.Fingerprint.FingerprintId = Convert.IsDBNull(reader[18]) ? null : (Byte[]?)reader[18];
+                result.Fingerprint.IsActive = Convert.IsDBNull(reader[19]) ? null : (Boolean?)reader[19];
+                result.Fingerprint.LastUpdatedById = Convert.IsDBNull(reader[20]) ? null : (Int64?)reader[20];
+                result.Fingerprint.NmlsId = Convert.IsDBNull(reader[21]) ? null : (Int64?)reader[21];
+                result.Fingerprint.RenewalDate = Convert.IsDBNull(reader[22]) ? null : (DateTime?)reader[22];
+                result.Fingerprint.StateId = Convert.IsDBNull(reader[23]) ? null : (Int64?)reader[23];
+                result.Fingerprint.UpdatedDate = Convert.IsDBNull(reader[24]) ? null : (DateTime?)reader[24];
+                result.State.Id = Convert.IsDBNull(reader[25]) ? null : (Int64?)reader[25];
+                result.State.Name = Convert.IsDBNull(reader[26]) ? null : (String?)reader[26];
+                result.State.StateId = Convert.IsDBNull(reader[27]) ? null : (Byte[]?)reader[27];
                 results.Add(result);
             }
             reader.Close();
             return results;
         }
-        public static async Task<List<GetSheduleAsync2ResponseModel>> GetSheduleAsync2(this DbConnection connection, GetSheduleAsync2RequestModel getSheduleAsync2RequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetSheduleAsync2ResponseModel>> GetSheduleAsync2(this DbConnection connection, GetSheduleAsync2RequestModel GetSheduleAsync2RequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT COUNT(*)
+            var sql = @"SELECT COUNT(*)
 				FROM `Schedules` AS `s`
 				GROUP BY `s`.`Id`";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            List<GetSheduleAsync2ResponseModel> results = new List<GetSheduleAsync2ResponseModel>();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetSheduleAsync2ResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetSheduleAsync2ResponseModel result = new GetSheduleAsync2ResponseModel();
+                var result = new GetSheduleAsync2ResponseModel();
                 result.Value_0 = (Int32)reader[0];
                 results.Add(result);
             }

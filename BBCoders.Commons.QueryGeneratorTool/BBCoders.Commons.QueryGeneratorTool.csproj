@@ -2,12 +2,12 @@
 
   <PropertyGroup>
     <Description>Generates source files for queries</Description> 
-    <Version>0.3.5</Version>
+    <Version>0.3.6</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>BBCoders.Commons.QueryGeneratorTool</RootNamespace>
-    <ToolCommandName>bbcoders-qgen</ToolCommandName>
+    <ToolCommandName>bbcoders</ToolCommandName>
     <RollForward>Major</RollForward>
   </PropertyGroup>
 

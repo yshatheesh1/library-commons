@@ -11,102 +11,279 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
+using System.Text;
 
 namespace BBCoders.Example.DataServices
 {
     public static class FingerprintRepository
     {
-        public static async Task<FingerprintModel> SelectFingerprint(this DbConnection connection, FingerprintKey fingerprintKey, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<FingerprintModel>> SelectBatchFingerprint(this DbConnection connection, List<FingerprintKey> FingerprintKey, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
+            var IdsJoined = string.Join(",", FingerprintKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` IN (" + IdsJoined + @");";
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", fingerprintKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetFingerprintResultSet(command);
-        }
-        public static async Task<FingerprintModel> InsertFingerprint(this DbConnection connection, FingerprintModel fingerprintModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"INSERT INTO `Fingerprint` (`CreatedById`, `CreatedDate`, `ExpirationDate`, `FingerprintId`, `IsActive`, `LastUpdatedById`, `NmlsId`, `RenewalDate`, `StateId`, `UpdatedDate`) VALUES (@CreatedById, If(@CreatedDate IS NULL,DEFAULT(`Fingerprint`.`CreatedDate`), @CreatedDate), @ExpirationDate, @FingerprintId, @IsActive, @LastUpdatedById, @NmlsId, @RenewalDate, @StateId, @UpdatedDate);
-SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID()";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@CreatedById", fingerprintModel.CreatedById);
-            command.CreateParameter("@CreatedDate", fingerprintModel.CreatedDate);
-            command.CreateParameter("@ExpirationDate", fingerprintModel.ExpirationDate);
-            command.CreateParameter("@FingerprintId", fingerprintModel.FingerprintId);
-            command.CreateParameter("@IsActive", fingerprintModel.IsActive);
-            command.CreateParameter("@LastUpdatedById", fingerprintModel.LastUpdatedById);
-            command.CreateParameter("@NmlsId", fingerprintModel.NmlsId);
-            command.CreateParameter("@RenewalDate", fingerprintModel.RenewalDate);
-            command.CreateParameter("@StateId", fingerprintModel.StateId);
-            command.CreateParameter("@UpdatedDate", fingerprintModel.UpdatedDate);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetFingerprintResultSet(command, fingerprintModel);
-        }
-        public static async Task<int> UpdateFingerprint(this DbConnection connection, FingerprintModel fingerprintModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"UPDATE `Fingerprint` AS `f` SET `f`.`CreatedById` = @CreatedById, `f`.`CreatedDate` = If(@CreatedDate IS NULL,DEFAULT(`f`.`CreatedDate`), @CreatedDate), `f`.`ExpirationDate` = @ExpirationDate, `f`.`FingerprintId` = @FingerprintId, `f`.`IsActive` = @IsActive, `f`.`LastUpdatedById` = @LastUpdatedById, `f`.`NmlsId` = @NmlsId, `f`.`RenewalDate` = @RenewalDate, `f`.`StateId` = @StateId, `f`.`UpdatedDate` = @UpdatedDate WHERE `f`.`Id` = @Id;";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", fingerprintModel.Id);
-            command.CreateParameter("@CreatedById", fingerprintModel.CreatedById);
-            command.CreateParameter("@CreatedDate", fingerprintModel.CreatedDate);
-            command.CreateParameter("@ExpirationDate", fingerprintModel.ExpirationDate);
-            command.CreateParameter("@FingerprintId", fingerprintModel.FingerprintId);
-            command.CreateParameter("@IsActive", fingerprintModel.IsActive);
-            command.CreateParameter("@LastUpdatedById", fingerprintModel.LastUpdatedById);
-            command.CreateParameter("@NmlsId", fingerprintModel.NmlsId);
-            command.CreateParameter("@RenewalDate", fingerprintModel.RenewalDate);
-            command.CreateParameter("@StateId", fingerprintModel.StateId);
-            command.CreateParameter("@UpdatedDate", fingerprintModel.UpdatedDate);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        public static async Task<int> DeleteFingerprint(this DbConnection connection, FingerprintKey fingerprintKey, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"DELETE FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", fingerprintKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        private static async Task<FingerprintModel> GetFingerprintResultSet(DbCommand cmd, FingerprintModel result = null)
-        {
-            var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            for (var i = 0; i< FingerprintKey.Count(); i++)
             {
-                if(result == null) result = new FingerprintModel();
-                result.Id = (Int64)reader["Id"];
-                result.CreatedById = (Int64)reader["CreatedById"];
-                result.CreatedDate = (DateTime)reader["CreatedDate"];
-                result.ExpirationDate = Convert.IsDBNull(reader["ExpirationDate"]) ? null : (DateTime?)reader["ExpirationDate"];
-                result.FingerprintId = (Byte[])reader["FingerprintId"];
-                result.IsActive = (Boolean)reader["IsActive"];
-                result.LastUpdatedById = (Int64)reader["LastUpdatedById"];
-                result.NmlsId = (Int64)reader["NmlsId"];
-                result.RenewalDate = Convert.IsDBNull(reader["RenewalDate"]) ? null : (DateTime?)reader["RenewalDate"];
-                result.StateId = (Int64)reader["StateId"];
-                result.UpdatedDate = (DateTime)reader["UpdatedDate"];
+                command.CreateParameter("@Id" + i, FingerprintKey[i].Id);
             }
-            reader.Close();
-            return result;
-        }
-        public static async Task<List<GetFingerprintByGuidsResponseModel>> GetFingerprintByGuids(this DbConnection connection, GetFingerprintByGuidsRequestModel getFingerprintByGuidsRequestModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            var testsJoined = string.Join(",", getFingerprintByGuidsRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
-            string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`
-				FROM `Fingerprint` AS `f`
-				WHERE `f`.`FingerprintId` IN (" + testsJoined + @")";
-
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            getFingerprintByGuidsRequestModel?.test.Select((x,y) => command.CreateParameter("@test" + y.ToString(), x)).ToArray();
-            List<GetFingerprintByGuidsResponseModel> results = new List<GetFingerprintByGuidsResponseModel>();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetFingerprintByGuidsResponseModel result = new GetFingerprintByGuidsResponseModel();
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<FingerprintModel>> InsertBatchFingerprint(this DbConnection connection, List<FingerprintModel> FingerprintModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", FingerprintModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< FingerprintModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"INSERT INTO `Fingerprint` (`CreatedById`, `CreatedDate`, `ExpirationDate`, `FingerprintId`, `IsActive`, `LastUpdatedById`, `NmlsId`, `RenewalDate`, `StateId`, `UpdatedDate`) VALUES (@CreatedById{i}, @CreatedDate{i}, @ExpirationDate{i}, @FingerprintId{i}, @IsActive{i}, @LastUpdatedById{i}, @NmlsId{i}, @RenewalDate{i}, @StateId{i}, @UpdatedDate{i}); SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID();");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< FingerprintModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, FingerprintModel[i].Id);
+                command.CreateParameter("@CreatedById" + i, FingerprintModel[i].CreatedById);
+                command.CreateParameter("@CreatedDate" + i, FingerprintModel[i].CreatedDate);
+                command.CreateParameter("@ExpirationDate" + i, FingerprintModel[i].ExpirationDate);
+                command.CreateParameter("@FingerprintId" + i, FingerprintModel[i].FingerprintId);
+                command.CreateParameter("@IsActive" + i, FingerprintModel[i].IsActive);
+                command.CreateParameter("@LastUpdatedById" + i, FingerprintModel[i].LastUpdatedById);
+                command.CreateParameter("@NmlsId" + i, FingerprintModel[i].NmlsId);
+                command.CreateParameter("@RenewalDate" + i, FingerprintModel[i].RenewalDate);
+                command.CreateParameter("@StateId" + i, FingerprintModel[i].StateId);
+                command.CreateParameter("@UpdatedDate" + i, FingerprintModel[i].UpdatedDate);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<FingerprintModel>> UpdateBatchFingerprint(this DbConnection connection, List<FingerprintModel> FingerprintModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", FingerprintModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< FingerprintModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"UPDATE `Fingerprint` AS `f` SET `f`.`CreatedById` = @CreatedById{i}, `f`.`CreatedDate` = If(@CreatedDate{i} IS NULL,DEFAULT(`f`.`CreatedDate`), @CreatedDate{i}), `f`.`ExpirationDate` = @ExpirationDate{i}, `f`.`FingerprintId` = @FingerprintId{i}, `f`.`IsActive` = @IsActive{i}, `f`.`LastUpdatedById` = @LastUpdatedById{i}, `f`.`NmlsId` = @NmlsId{i}, `f`.`RenewalDate` = @RenewalDate{i}, `f`.`StateId` = @StateId{i}, `f`.`UpdatedDate` = @UpdatedDate{i} WHERE `f`.`Id` = IdsJoined;SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id{i};");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< FingerprintModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, FingerprintModel[i].Id);
+                command.CreateParameter("@CreatedById" + i, FingerprintModel[i].CreatedById);
+                command.CreateParameter("@CreatedDate" + i, FingerprintModel[i].CreatedDate);
+                command.CreateParameter("@ExpirationDate" + i, FingerprintModel[i].ExpirationDate);
+                command.CreateParameter("@FingerprintId" + i, FingerprintModel[i].FingerprintId);
+                command.CreateParameter("@IsActive" + i, FingerprintModel[i].IsActive);
+                command.CreateParameter("@LastUpdatedById" + i, FingerprintModel[i].LastUpdatedById);
+                command.CreateParameter("@NmlsId" + i, FingerprintModel[i].NmlsId);
+                command.CreateParameter("@RenewalDate" + i, FingerprintModel[i].RenewalDate);
+                command.CreateParameter("@StateId" + i, FingerprintModel[i].StateId);
+                command.CreateParameter("@UpdatedDate" + i, FingerprintModel[i].UpdatedDate);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<int> DeleteBatchFingerprint(this DbConnection connection, List<FingerprintKey> FingerprintKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", FingerprintKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"DELETE FROM `Fingerprint` AS `f` WHERE `f`.`Id` IN (" + IdsJoined + @")";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< FingerprintKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, FingerprintKey[i].Id);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<FingerprintModel> SelectFingerprint(this DbConnection connection, FingerprintKey FingerprintKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", FingerprintKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<FingerprintModel> InsertFingerprint(this DbConnection connection, FingerprintModel FingerprintModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"INSERT INTO Fingerprint (`CreatedById`, `CreatedDate`, `ExpirationDate`, `FingerprintId`, `IsActive`, `LastUpdatedById`, `NmlsId`, `RenewalDate`, `StateId`, `UpdatedDate`) VALUES (@CreatedById, If(@CreatedDate IS NULL,DEFAULT(`Fingerprint`.`CreatedDate`), @CreatedDate), @ExpirationDate, @FingerprintId, @IsActive, @LastUpdatedById, @NmlsId, @RenewalDate, @StateId, @UpdatedDate);
+            SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID();";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@CreatedById", FingerprintModel.CreatedById);
+            command.CreateParameter("@CreatedDate", FingerprintModel.CreatedDate);
+            command.CreateParameter("@ExpirationDate", FingerprintModel.ExpirationDate);
+            command.CreateParameter("@FingerprintId", FingerprintModel.FingerprintId);
+            command.CreateParameter("@IsActive", FingerprintModel.IsActive);
+            command.CreateParameter("@LastUpdatedById", FingerprintModel.LastUpdatedById);
+            command.CreateParameter("@NmlsId", FingerprintModel.NmlsId);
+            command.CreateParameter("@RenewalDate", FingerprintModel.RenewalDate);
+            command.CreateParameter("@StateId", FingerprintModel.StateId);
+            command.CreateParameter("@UpdatedDate", FingerprintModel.UpdatedDate);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<FingerprintModel> UpdateFingerprint(this DbConnection connection, FingerprintModel FingerprintModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"UPDATE `Fingerprint` AS `f` SET `f`.`CreatedById` = @CreatedById, `f`.`CreatedDate` = If(@CreatedDate IS NULL,DEFAULT(`f`.`CreatedDate`), @CreatedDate), `f`.`ExpirationDate` = @ExpirationDate, `f`.`FingerprintId` = @FingerprintId, `f`.`IsActive` = @IsActive, `f`.`LastUpdatedById` = @LastUpdatedById, `f`.`NmlsId` = @NmlsId, `f`.`RenewalDate` = @RenewalDate, `f`.`StateId` = @StateId, `f`.`UpdatedDate` = @UpdatedDate WHERE `f`.`Id` = @Id;SELECT `f`.`Id`,`f`.`CreatedById`,`f`.`CreatedDate`,`f`.`ExpirationDate`,`f`.`FingerprintId`,`f`.`IsActive`,`f`.`LastUpdatedById`,`f`.`NmlsId`,`f`.`RenewalDate`,`f`.`StateId`,`f`.`UpdatedDate` FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", FingerprintModel.Id);
+            command.CreateParameter("@CreatedById", FingerprintModel.CreatedById);
+            command.CreateParameter("@CreatedDate", FingerprintModel.CreatedDate);
+            command.CreateParameter("@ExpirationDate", FingerprintModel.ExpirationDate);
+            command.CreateParameter("@FingerprintId", FingerprintModel.FingerprintId);
+            command.CreateParameter("@IsActive", FingerprintModel.IsActive);
+            command.CreateParameter("@LastUpdatedById", FingerprintModel.LastUpdatedById);
+            command.CreateParameter("@NmlsId", FingerprintModel.NmlsId);
+            command.CreateParameter("@RenewalDate", FingerprintModel.RenewalDate);
+            command.CreateParameter("@StateId", FingerprintModel.StateId);
+            command.CreateParameter("@UpdatedDate", FingerprintModel.UpdatedDate);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<FingerprintModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new FingerprintModel();
+                result.Id = (Int64)reader[0];
+                result.CreatedById = (Int64)reader[1];
+                result.CreatedDate = (DateTime)reader[2];
+                result.ExpirationDate = Convert.IsDBNull(reader[3]) ? null : (DateTime?)reader[3];
+                result.FingerprintId = (Byte[])reader[4];
+                result.IsActive = (Boolean)reader[5];
+                result.LastUpdatedById = (Int64)reader[6];
+                result.NmlsId = (Int64)reader[7];
+                result.RenewalDate = Convert.IsDBNull(reader[8]) ? null : (DateTime?)reader[8];
+                result.StateId = (Int64)reader[9];
+                result.UpdatedDate = (DateTime)reader[10];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<int> DeleteFingerprint(this DbConnection connection, FingerprintKey FingerprintKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"DELETE FROM `Fingerprint` AS `f` WHERE `f`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", FingerprintKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<List<GetFingerprintByGuidsResponseModel>> GetFingerprintByGuids(this DbConnection connection, GetFingerprintByGuidsRequestModel GetFingerprintByGuidsRequestModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var testsJoined = string.Join(",", GetFingerprintByGuidsRequestModel?.test.Select((x, idx) => "@test" + idx));
+            var sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`
+				FROM `Fingerprint` AS `f`
+				WHERE `f`.`FingerprintId` IN (" + testsJoined + @")";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            GetFingerprintByGuidsRequestModel?.test.Select((x,y) => command.CreateParameter("@test" + y.ToString(), x)).ToArray();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetFingerprintByGuidsResponseModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new GetFingerprintByGuidsResponseModel();
                 result.Fingerprint.Id = (Int64)reader[0];
                 result.Fingerprint.CreatedById = (Int64)reader[1];
                 result.Fingerprint.CreatedDate = (DateTime)reader[2];
@@ -123,20 +300,21 @@ SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID()";
             reader.Close();
             return results;
         }
-        public static async Task<List<GetFingerprintsByIdResponseModel>> GetFingerprintsById(this DbConnection connection, GetFingerprintsByIdRequestModel getFingerprintsByIdRequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetFingerprintsByIdResponseModel>> GetFingerprintsById(this DbConnection connection, GetFingerprintsByIdRequestModel GetFingerprintsByIdRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var testsJoined = string.Join(",", getFingerprintsByIdRequestModel?.test.Select((x,y) => "@test" + y.ToString()).ToArray());
-            string sql = @"SELECT `f`.`Id`, `f`.`FingerprintId`, `f`.`IsActive`
+            var testsJoined = string.Join(",", GetFingerprintsByIdRequestModel?.test.Select((x, idx) => "@test" + idx));
+            var sql = @"SELECT `f`.`Id`, `f`.`FingerprintId`, `f`.`IsActive`
 				FROM `Fingerprint` AS `f`
 				WHERE `f`.`Id` IN (" + testsJoined + @")";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            getFingerprintsByIdRequestModel?.test.Select((x,y) => command.CreateParameter("@test" + y.ToString(), x)).ToArray();
-            List<GetFingerprintsByIdResponseModel> results = new List<GetFingerprintsByIdResponseModel>();
+            GetFingerprintsByIdRequestModel?.test.Select((x,y) => command.CreateParameter("@test" + y.ToString(), x)).ToArray();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetFingerprintsByIdResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetFingerprintsByIdResponseModel result = new GetFingerprintsByIdResponseModel();
+                var result = new GetFingerprintsByIdResponseModel();
                 result.Fingerprint.Id = (Int64)reader[0];
                 result.Fingerprint.FingerprintId = (Byte[])reader[1];
                 result.Fingerprint.IsActive = (Boolean)reader[2];
@@ -145,24 +323,25 @@ SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID()";
             reader.Close();
             return results;
         }
-        public static async Task<List<GetFingerprintByStateIdResponseModel>> GetFingerprintByStateId(this DbConnection connection, GetFingerprintByStateIdRequestModel getFingerprintByStateIdRequestModel, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<GetFingerprintByStateIdResponseModel>> GetFingerprintByStateId(this DbConnection connection, GetFingerprintByStateIdRequestModel GetFingerprintByStateIdRequestModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var fingerprintIdsJoined = string.Join(",", getFingerprintByStateIdRequestModel?.fingerprintId.Select((x,y) => "@fingerprintId" + y.ToString()).ToArray());
-            var stateIdsJoined = string.Join(",", getFingerprintByStateIdRequestModel?.stateId.Select((x,y) => "@stateId" + y.ToString()).ToArray());
-            string sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`, `s`.`Id`, `s`.`Name`, `s`.`StateId`
+            var fingerprintIdsJoined = string.Join(",", GetFingerprintByStateIdRequestModel?.fingerprintId.Select((x, idx) => "@fingerprintId" + idx));
+            var stateIdsJoined = string.Join(",", GetFingerprintByStateIdRequestModel?.stateId.Select((x, idx) => "@stateId" + idx));
+            var sql = @"SELECT `f`.`Id`, `f`.`CreatedById`, `f`.`CreatedDate`, `f`.`ExpirationDate`, `f`.`FingerprintId`, `f`.`IsActive`, `f`.`LastUpdatedById`, `f`.`NmlsId`, `f`.`RenewalDate`, `f`.`StateId`, `f`.`UpdatedDate`, `s`.`Id`, `s`.`Name`, `s`.`StateId`
 				FROM `Fingerprint` AS `f`
 				INNER JOIN `States` AS `s` ON `f`.`StateId` = `s`.`Id`
 				WHERE (`f`.`FingerprintId` IN (" + stateIdsJoined + @") AND (`f`.`IsActive` = @__Value_1)) AND `s`.`StateId` IN (" + stateIdsJoined + @")";
-
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@__Value_1", getFingerprintByStateIdRequestModel.active);
-            getFingerprintByStateIdRequestModel?.fingerprintId.Select((x,y) => command.CreateParameter("@fingerprintId" + y.ToString(), x)).ToArray();
-            getFingerprintByStateIdRequestModel?.stateId.Select((x,y) => command.CreateParameter("@stateId" + y.ToString(), x)).ToArray();
-            List<GetFingerprintByStateIdResponseModel> results = new List<GetFingerprintByStateIdResponseModel>();
+            command.CreateParameter("@@__Value_1", GetFingerprintByStateIdRequestModel.active);
+            GetFingerprintByStateIdRequestModel?.fingerprintId.Select((x,y) => command.CreateParameter("@fingerprintId" + y.ToString(), x)).ToArray();
+            GetFingerprintByStateIdRequestModel?.stateId.Select((x,y) => command.CreateParameter("@stateId" + y.ToString(), x)).ToArray();
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<GetFingerprintByStateIdResponseModel>();
             var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                GetFingerprintByStateIdResponseModel result = new GetFingerprintByStateIdResponseModel();
+                var result = new GetFingerprintByStateIdResponseModel();
                 result.Fingerprint.Id = (Int64)reader[0];
                 result.Fingerprint.CreatedById = (Int64)reader[1];
                 result.Fingerprint.CreatedDate = (DateTime)reader[2];
@@ -175,7 +354,7 @@ SELECT * FROM `Fingerprint` AS `f` WHERE `f`.`Id` = LAST_INSERT_ID()";
                 result.Fingerprint.StateId = (Int64)reader[9];
                 result.Fingerprint.UpdatedDate = (DateTime)reader[10];
                 result.State.Id = (Int64)reader[11];
-                result.State.Name = Convert.IsDBNull(reader[12]) ? null : (String)reader[12];
+                result.State.Name = Convert.IsDBNull(reader[12]) ? null : (String?)reader[12];
                 result.State.StateId = (Byte[])reader[13];
                 results.Add(result);
             }

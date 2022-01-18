@@ -10,13 +10,21 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ActionModel
+    public class GetSheduleActionResponseModel
     {
-        public Int64 Id { get; set; }
-        public Byte[] ActionId { get; set; }
-        public String Name { get; set; }
-        public ActionModel()
+        public GetSheduleActionResponseModel()
         {
+            Schedule = new ScheduleModel();
+        }
+        public ScheduleModel Schedule { get; set; }
+        public class ScheduleModel
+        {
+            public Int64? action { get; set; }
+            public Int64 id { get; set; }
+            public Byte[] schedule_id { get; set; }
+            public ScheduleModel()
+            {
+            }
         }
     }
 }

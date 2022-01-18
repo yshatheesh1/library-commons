@@ -40,7 +40,6 @@ namespace BBCoders.Commons.SourceGeneratorTool
             }
             foreach (var source in sourceFiles)
             {
-                Reporter.WriteInformation("Generating file - " + source.Key);
                 File.WriteAllText(source.Key, source.Value);
             }
         }

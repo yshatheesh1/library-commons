@@ -14,23 +14,18 @@ namespace BBCoders.Commons.QueryGeneratorTool.Models
         /// Table of the projection
         /// </summary>
         /// <value></value>
-        public SqlTable Table { get; set; }
+        public string Table { get; set; }
 
         /// <summary>
         /// type of the projection
         /// </summary>
         /// <value></value>
-        public string Type { get; set; }
+        public Type Type { get; set; }
         /// <summary>
         /// Check if type is nullable
         /// </summary>
         /// <value></value>
         public bool IsNullable { get; set; }
-        /// <summary>
-        /// Check if type is value or reference type
-        /// </summary>
-        /// <value></value>
-        public bool IsValueType { get; set; }
     }
 
 }

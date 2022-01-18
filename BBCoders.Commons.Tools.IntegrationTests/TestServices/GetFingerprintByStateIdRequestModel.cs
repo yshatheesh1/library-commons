@@ -10,12 +10,12 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ActionModel
+    public class GetFingerprintByStateIdRequestModel
     {
-        public Int64 Id { get; set; }
-        public Byte[] ActionId { get; set; }
-        public String Name { get; set; }
-        public ActionModel()
+        public Boolean active { get; set; }
+        public List<Byte[]> fingerprintId { get; set; }
+        public List<Byte[]> stateId { get; set; }
+        public GetFingerprintByStateIdRequestModel()
         {
         }
     }

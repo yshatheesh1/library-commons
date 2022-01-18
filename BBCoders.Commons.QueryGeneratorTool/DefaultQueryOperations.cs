@@ -18,12 +18,12 @@ using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Humanizer;
 using BBCoders.Commons.QueryGenerator;
 using BBCoders.Commons.QueryGeneratorTool.Helpers;
 using Microsoft.EntityFrameworkCore.Design;
-using System.Diagnostics;
-using System.Threading;
+using BBCoders.Commons.QueryGeneratorTool.Services.SqlGenerator;
+using System.Text.RegularExpressions;
+using Humanizer;
 
 namespace BBCoders.Commons.QueryGeneratorTool
 {
@@ -31,13 +31,13 @@ namespace BBCoders.Commons.QueryGeneratorTool
     {
         private readonly DesignTimeServicesBuilder _servicesBuilder;
         private readonly DbContextOperations _contextOperations;
-        private IRelationalModel model;
-        private ISqlGenerationHelper sqlGenerationHelper;
-        private List<ICodeGenerator> codeGenerators = new List<ICodeGenerator>();
-        private List<IOperationGenerator> operationGenerators;
-        private IRelationalTypeMappingSource relationalTypeMappingSource;
+        private IRelationalModel _model;
+        private ISqlGenerationHelper _sqlGenerationHelper;
+        private IRelationalTypeMappingSource _relationalTypeMappingSource;
         private IOperationReporter _reporter;
         private DbContext _dbContext;
+        private List<SqlModel> _sqlModel;
+        private List<ITable> _tables;
         public DefaultQueryOperations([NotNull] Assembly assembly, [NotNull] Assembly startupAssembly, [NotNull] string projectDir, [NotNull] string rootNamespace, [NotNull] string[] designArgs) :
          base(assembly, startupAssembly, projectDir, rootNamespace, designArgs)
         {
@@ -60,7 +60,7 @@ namespace BBCoders.Commons.QueryGeneratorTool
             var type = typeof(IQueryGenerator<>);
             var queryGenerators = assembly.GetTypes().Where(x => !x.IsInterface &&
                 x.GetInterfaces().Any(x => x.IsGenericType && x.GetGenericTypeDefinition() == type.GetGenericTypeDefinition()));
-              _reporter.WriteInformation($"Found {queryGenerators.Count()} query generators.");
+            _reporter.WriteInformation($"Found {queryGenerators.Count()} query generators.");
             foreach (var queryGenerator in queryGenerators)
             {
                 var contextType = queryGenerator.GetInterfaces().First(x => x.IsGenericType &&
@@ -70,10 +70,10 @@ namespace BBCoders.Commons.QueryGeneratorTool
                 var services = _servicesBuilder.Build(_dbContext);
                 using (var scope = services.CreateScope())
                 {
-                    relationalTypeMappingSource = scope.ServiceProvider.GetService<IRelationalTypeMappingSource>();
-                    sqlGenerationHelper = scope.ServiceProvider.GetService<ISqlGenerationHelper>();
+                    _relationalTypeMappingSource = scope.ServiceProvider.GetService<IRelationalTypeMappingSource>();
+                    _sqlGenerationHelper = scope.ServiceProvider.GetService<ISqlGenerationHelper>();
                     var migrationsScaffolderDependencies = scope.ServiceProvider.GetService<MigrationsScaffolderDependencies>();
-                    model = migrationsScaffolderDependencies.Model.GetRelationalModel();
+                    _model = migrationsScaffolderDependencies.Model.GetRelationalModel();
                     var queryGeneratorInstance = Activator.CreateInstance(queryGenerator, new object[] { });
                     var queryConfigMethod = queryGenerator.GetMethod("GetQueryOptions");
                     var queryOptions = (QueryOptions)queryConfigMethod.Invoke(queryGeneratorInstance, new object[] { });
@@ -81,13 +81,30 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     {
                         throw new ArgumentNullException(nameof(queryOptions));
                     }
-                    operationGenerators = new List<IOperationGenerator>();
+                    // operationGenerators = new List<IOperationGenerator>();
+                    _tables = new List<ITable>();
+                    _sqlModel = new List<SqlModel>();
                     var createQuery = queryGenerator.GetMethod("CreateQuery");
                     createQuery.Invoke(queryGeneratorInstance, new object[] { _dbContext, this });
-                    codeGenerators.Add(new DefaultCodeGenerator(queryOptions, operationGenerators));
+                    var dependencies = new SqlOperationGeneratorDependencies(
+                        new SQLGenerator(_sqlGenerationHelper),
+                         _relationalTypeMappingSource
+                    );
+                    if (queryOptions.Language.Equals("CSharp", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        new CsharpOperationGenerator(dependencies, queryOptions, Language.CSharp, _tables, _sqlModel).Generate();
+                    }
+                    else if (queryOptions.Language.Equals("go", System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        new GoOperationGenerator(dependencies, queryOptions, Language.Go, _tables, _sqlModel).Generate();
+                    }
+                    else
+                    {
+                        throw new Exception("Language is not supported");
+                    }
+
                 }
             }
-            codeGenerators.ForEach(x => x.Generate());
         }
         /// <summary>
         ///  adds default methods for a table
@@ -95,18 +112,14 @@ namespace BBCoders.Commons.QueryGeneratorTool
         /// <typeparam name="T"></typeparam>
         public override void Add<T>()
         {
-            var table = model?.Tables.FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
+            var table = _model?.Tables.FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
             if (table == null)
             {
                 var error = $"Table with given type not defined -{typeof(T)}. Please add this to DbContext if not added.";
                 Reporter.WriteError(error);
                 throw new Exception(error);
             }
-            var dependencies = new SqlOperationGeneratorDependencies(sqlGenerationHelper, relationalTypeMappingSource);
-            operationGenerators.Add(new SelectSqlOperationGenerator(dependencies, table));
-            operationGenerators.Add(new InsertSqlOperationGenerator(dependencies, table));
-            operationGenerators.Add(new UpdateSqlOperationGenerator(dependencies, table));
-            operationGenerators.Add(new DeleteSqlOperationGenerator(dependencies, table));
+            _tables.Add(table);
         }
 
         public override void Add<T>(string name, List<ParameterExpression> inputParameters, Expression<T> expression)
@@ -126,10 +139,10 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     var type = GetDbType(projection.Expression.TypeMapping);
                     var sqlProjection = new SqlProjection()
                     {
-                        IsValueType = type.IsValueType,
                         Name = projection.Alias,
-                        Type = type.Name,
+                        Type = type
                     };
+                    // if no name is provided for custom sql 
                     if (string.IsNullOrEmpty(sqlProjection.Name))
                     {
                         sqlProjection.Name = $"Value_{constantPropertyIndex}";
@@ -141,15 +154,13 @@ namespace BBCoders.Commons.QueryGeneratorTool
                         if (columnExpression.Table is TableExpression tableExpression)
                         {
                             sqlProjection.Name = projection.Alias;
-                            sqlProjection.Table = new SqlTable() {
-                                Name = tableExpression.Name,
-                            };
+                            sqlProjection.Table = tableExpression.Name;
                         }
                     }
                     customSqlModel.Projections.Add(sqlProjection);
                 }
                 var command = queryingEnumerable.CreateDbCommand();
-                customSqlModel.Sql = command.CommandText;
+                customSqlModel.Sql = command.CommandText.Replace("\n", "\n\t\t\t\t"); ;
                 var equalParameters = bindingParameters.Where(x => !x.InExpression).ToList();
                 for (var i = 0; i < command.Parameters.Count; i++)
                 {
@@ -158,41 +169,64 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     // if user provides default value in the query, no user input is required
                     if (bindingParameter == null)
                     {
-                        customSqlModel.EqualBindings.Add(new SqlBinding()
+                        customSqlModel.BindingParameters.Add(new SqlBinding()
                         {
                             Name = parameter.ParameterName,
-                            hasDefault = true,
                             DefaultValue = parameter.Value
                         });
                     }
                     else
                     {
                         var type = GetDbType(bindingParameter.Expression.Type);
-                        customSqlModel.EqualBindings.Add(new SqlBinding()
+                        var inputParameter = new InputParameter()
+                        {
+                            Name = bindingParameter.Expression.Name,
+                            IsList = false,
+                            Type = type
+                        };
+                        customSqlModel.Parameters.Add(inputParameter);
+                        customSqlModel.BindingParameters.Add(new SqlBinding()
                         {
                             Name = parameter.ParameterName,
-                            Type = type.Name,
-                            Value = bindingParameter.Expression.Name,
+                            Value = inputParameter
                         });
                     }
                 }
+                Regex rgx = new Regex(@"\s*IN\s*\(.*?\)");
+                int index = 0;
                 foreach (var binding in bindingParameters.Where(x => x.InExpression))
                 {
                     var type = GetDbType(binding.Expression.Type.GetGenericArguments()[0]);
-                    customSqlModel.InBindings.Add(new SqlBinding()
+                    var inputParameter = new InputParameter()
                     {
                         Name = binding.Expression.Name,
-                        Type = $"List<{type.Name}>",
-                        Value = binding.Expression.Name
+                        IsList = true,
+                        Type = type
+                    };
+
+                    var match = rgx.Match(customSqlModel.Sql, index);
+                    if (match.Success)
+                    {
+                        var placeholder = binding.Expression.Name.Pluralize() + "Joined";
+                        var inClause = $" IN (\" + {placeholder} + @\")";
+                        customSqlModel.Sql =  customSqlModel.Sql .Replace(match.Value, inClause);
+                        index = match.Index + inClause.Length;
+                        inputParameter.ListPlaceholder = placeholder;
+                    }
+                    customSqlModel.Parameters.Add(inputParameter);
+                    customSqlModel.BindingParameters.Add(new SqlBinding()
+                    {
+                        Name = binding.Expression.Name,
+                        Value = inputParameter
                     });
                 }
             }
-            operationGenerators.Add(new CustomSqlOperationGenerator(customSqlModel));
+            _sqlModel.Add(customSqlModel);
         }
 
         private Type GetDbType(Type type)
         {
-            var relationalTypeMapping = relationalTypeMappingSource.GetMapping(type);
+            var relationalTypeMapping = _relationalTypeMappingSource.GetMapping(type);
             return GetDbType(relationalTypeMapping);
         }
 

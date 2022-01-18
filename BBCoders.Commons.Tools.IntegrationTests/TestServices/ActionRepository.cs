@@ -11,63 +11,183 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
+using System.Text;
 
 namespace BBCoders.Example.DataServices
 {
     public static class ActionRepository
     {
-        public static async Task<ActionModel> SelectAction(this DbConnection connection, ActionKey actionKey, DbTransaction transaction = null, int? timeout = null)
+        public static async Task<List<ActionModel>> SelectBatchAction(this DbConnection connection, List<ActionKey> ActionKey, DbTransaction transaction = null, int? timeout = null)
         {
-            string sql = @"SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
+            var IdsJoined = string.Join(",", ActionKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` IN (" + IdsJoined + @");";
             var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", actionKey.Id);
+            for (var i = 0; i< ActionKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ActionKey[i].Id);
+            }
             if (connection.State == ConnectionState.Closed)
                 await connection.OpenAsync();
-            return await GetActionResultSet(command);
-        }
-        public static async Task<ActionModel> InsertAction(this DbConnection connection, ActionModel actionModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"INSERT INTO `Actions` (`ActionId`, `Name`) VALUES (@ActionId, @Name);
-SELECT * FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID()";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@ActionId", actionModel.ActionId);
-            command.CreateParameter("@Name", actionModel.Name);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await GetActionResultSet(command, actionModel);
-        }
-        public static async Task<int> UpdateAction(this DbConnection connection, ActionModel actionModel, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId, `a`.`Name` = @Name WHERE `a`.`Id` = @Id;";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", actionModel.Id);
-            command.CreateParameter("@ActionId", actionModel.ActionId);
-            command.CreateParameter("@Name", actionModel.Name);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        public static async Task<int> DeleteAction(this DbConnection connection, ActionKey actionKey, DbTransaction transaction = null, int? timeout = null)
-        {
-            string sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
-            var command = connection.CreateCommand(sql, transaction, timeout);
-            command.CreateParameter("@Id", actionKey.Id);
-            if (connection.State == ConnectionState.Closed)
-                await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
-        private static async Task<ActionModel> GetActionResultSet(DbCommand cmd, ActionModel result = null)
-        {
-            var reader = await cmd.ExecuteReaderAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                if(result == null) result = new ActionModel();
-                result.Id = (Int64)reader["Id"];
-                result.ActionId = (Byte[])reader["ActionId"];
-                result.Name = (String)reader["Name"];
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
             }
             reader.Close();
-            return result;
+            return results;
+        }
+        public static async Task<List<ActionModel>> InsertBatchAction(this DbConnection connection, List<ActionModel> ActionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ActionModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< ActionModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"INSERT INTO `Actions` (`ActionId`, `Name`) VALUES (@ActionId{i}, @Name{i}); SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID();");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ActionModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ActionModel[i].Id);
+                command.CreateParameter("@ActionId" + i, ActionModel[i].ActionId);
+                command.CreateParameter("@Name" + i, ActionModel[i].Name);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<List<ActionModel>> UpdateBatchAction(this DbConnection connection, List<ActionModel> ActionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ActionModel.Select((_, idx) => "@Id" + idx));
+            var sqlBuilder = new StringBuilder();
+            for (var i = 0; i< ActionModel.Count(); i++)
+            {
+                sqlBuilder.AppendLine($"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId{i}, `a`.`Name` = @Name{i} WHERE `a`.`Id` = IdsJoined;SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` = @Id{i};");
+            }
+            var sql = sqlBuilder.ToString();
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ActionModel.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ActionModel[i].Id);
+                command.CreateParameter("@ActionId" + i, ActionModel[i].ActionId);
+                command.CreateParameter("@Name" + i, ActionModel[i].Name);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results;
+        }
+        public static async Task<int> DeleteBatchAction(this DbConnection connection, List<ActionKey> ActionKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var IdsJoined = string.Join(",", ActionKey.Select((_, idx) => "@Id" + idx));
+            var sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` IN (" + IdsJoined + @")";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            for (var i = 0; i< ActionKey.Count(); i++)
+            {
+                command.CreateParameter("@Id" + i, ActionKey[i].Id);
+            }
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
+        }
+        public static async Task<ActionModel> SelectAction(this DbConnection connection, ActionKey ActionKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ActionKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<ActionModel> InsertAction(this DbConnection connection, ActionModel ActionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"INSERT INTO Actions (`ActionId`, `Name`) VALUES (@ActionId, @Name);
+            SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` = LAST_INSERT_ID();";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@ActionId", ActionModel.ActionId);
+            command.CreateParameter("@Name", ActionModel.Name);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<ActionModel> UpdateAction(this DbConnection connection, ActionModel ActionModel, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"UPDATE `Actions` AS `a` SET `a`.`ActionId` = @ActionId, `a`.`Name` = @Name WHERE `a`.`Id` = @Id;SELECT `a`.`Id`,`a`.`ActionId`,`a`.`Name` FROM `Actions` AS `a` WHERE `a`.`Id` = @Id;";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ActionModel.Id);
+            command.CreateParameter("@ActionId", ActionModel.ActionId);
+            command.CreateParameter("@Name", ActionModel.Name);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            var results = new List<ActionModel>();
+            var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var result = new ActionModel();
+                result.Id = (Int64)reader[0];
+                result.ActionId = (Byte[])reader[1];
+                result.Name = (String)reader[2];
+                results.Add(result);
+            }
+            reader.Close();
+            return results.FirstOrDefault();
+        }
+        public static async Task<int> DeleteAction(this DbConnection connection, ActionKey ActionKey, DbTransaction transaction = null, int? timeout = null)
+        {
+            var sql = @"DELETE FROM `Actions` AS `a` WHERE `a`.`Id` = @Id";
+            var command = connection.CreateCommand(sql, transaction, timeout);
+            command.CreateParameter("@Id", ActionKey.Id);
+            if (connection.State == ConnectionState.Closed)
+                await connection.OpenAsync();
+            return await command.ExecuteNonQueryAsync();
         }
         private static DbCommand CreateCommand(this DbConnection connection, string sql, DbTransaction transaction = null, int? timeout = null)
         {

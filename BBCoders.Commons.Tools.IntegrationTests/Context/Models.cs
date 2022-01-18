@@ -62,11 +62,6 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
 
         [ForeignKey("StateId")]
         public State State { get; set; }
-
-        public long FingerprintParentId { get; set; }
-
-        [ForeignKey("FingerprintParentId")]
-        public Fingerprint fingerprintParent { get; set; }
     }
 
 

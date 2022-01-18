@@ -10,13 +10,21 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataServices
 {
-    public class ActionModel
+    public class GetFingerprintsByIdResponseModel
     {
-        public Int64 Id { get; set; }
-        public Byte[] ActionId { get; set; }
-        public String Name { get; set; }
-        public ActionModel()
+        public GetFingerprintsByIdResponseModel()
         {
+            Fingerprint = new FingerprintModel();
+        }
+        public FingerprintModel Fingerprint { get; set; }
+        public class FingerprintModel
+        {
+            public Int64 Id { get; set; }
+            public Byte[] FingerprintId { get; set; }
+            public Boolean IsActive { get; set; }
+            public FingerprintModel()
+            {
+            }
         }
     }
 }
