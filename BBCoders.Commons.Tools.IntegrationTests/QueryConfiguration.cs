@@ -44,6 +44,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             queryOperations.Add<List<long>>("GetFingerprintsById", (test) => context.Fingerprints.Where(x => test.Contains(x.Id)).Select(x => new { Id = x.Id, FingerprintId = x.FingerprintId, IsActive = x.IsActive }));
             queryOperations.Add<List<Guid>, Boolean, List<Guid>>("GetFingerprintByStateId", (fingerprintId, active, stateId) =>
             context.Fingerprints.Include(x => x.State).Where(x => fingerprintId.Contains(x.FingerprintId) && x.IsActive == active && stateId.Contains(x.State.StateId)));
+            // bug to fix nested querys -> if same table appears twice
+            // check if we can created nested data structure
+            // queryOperations.Add<Guid>("GetNestedFingerprint", (id) => 
+            //     context.Fingerprints.Include(x => x.fingerprintParent).Where(x => x.FingerprintId == id));
         }
 
         public QueryOptions GetQueryOptions()
@@ -99,7 +103,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             context.Schedules
                 .Include(x => x.scheduleSite)
                 .Include(x => x.Fingerprint)
-                .Where(x => x.ScheduleId == id).Select(x => new { Id = x.Id, Test = x.CreatedById, StateActive = true, state = x.Fingerprint.State }));
+                .Include(x => x.Fingerprint.State)
+                .Where(x => x.ScheduleId == id));
             queryOperations.Add<Guid>("GetSheduleAsync2", (id) => 
             context.Schedules
                 .GroupBy(x => x.Id, (x, y)  =>  y.Count() ));
