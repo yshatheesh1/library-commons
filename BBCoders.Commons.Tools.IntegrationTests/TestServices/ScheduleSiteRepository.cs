@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
 using System.Text;
+using BBCoders.Example.DataModels;
 
 namespace BBCoders.Example.DataServices
 {
@@ -20,7 +21,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<List<ScheduleSiteModel>> SelectBatchScheduleSite(this DbConnection connection, List<ScheduleSiteKey> ScheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", ScheduleSiteKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @");";
+            var sql = $"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< ScheduleSiteKey.Count(); i++)
             {
@@ -36,7 +37,7 @@ namespace BBCoders.Example.DataServices
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -44,11 +45,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<ScheduleSiteModel>> InsertBatchScheduleSite(this DbConnection connection, List<ScheduleSiteModel> ScheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", ScheduleSiteModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< ScheduleSiteModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive{i}, @Name{i}, @ScheduleSiteId{i}); SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();");
+                sqlBuilder.AppendLine($"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive{i}, @Name{i}, @ScheduleSiteId{i});");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -63,13 +64,13 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<ScheduleSiteModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new ScheduleSiteModel();
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -77,11 +78,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<ScheduleSiteModel>> UpdateBatchScheduleSite(this DbConnection connection, List<ScheduleSiteModel> ScheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", ScheduleSiteModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< ScheduleSiteModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive{i}, `s`.`Name` = @Name{i}, `s`.`ScheduleSiteId` = @ScheduleSiteId{i} WHERE `s`.`Id` = IdsJoined;SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive{i}, `s`.`Name` = @Name{i}, `s`.`ScheduleSiteId` = @ScheduleSiteId{i} WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id{i};");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -96,13 +97,13 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<ScheduleSiteModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new ScheduleSiteModel();
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -111,7 +112,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<int> DeleteBatchScheduleSite(this DbConnection connection, List<ScheduleSiteKey> ScheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", ScheduleSiteKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @")";
+            var sql = $"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< ScheduleSiteKey.Count(); i++)
             {
@@ -123,7 +124,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleSiteModel> SelectScheduleSite(this DbConnection connection, ScheduleSiteKey ScheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = $"SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleSiteKey.Id);
             if (connection.State == ConnectionState.Closed)
@@ -136,7 +137,7 @@ namespace BBCoders.Example.DataServices
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -144,8 +145,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleSiteModel> InsertScheduleSite(this DbConnection connection, ScheduleSiteModel ScheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"INSERT INTO ScheduleSites (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive, @Name, @ScheduleSiteId);
-            SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();";
+            var sql = @"INSERT INTO `ScheduleSites` (`IsActive`, `Name`, `ScheduleSiteId`) VALUES (@IsActive, @Name, @ScheduleSiteId);SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@IsActive", ScheduleSiteModel.IsActive);
             command.CreateParameter("@Name", ScheduleSiteModel.Name);
@@ -160,7 +160,7 @@ namespace BBCoders.Example.DataServices
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -168,7 +168,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleSiteModel> UpdateScheduleSite(this DbConnection connection, ScheduleSiteModel ScheduleSiteModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = @"UPDATE `ScheduleSites` AS `s` SET `s`.`IsActive` = @IsActive, `s`.`Name` = @Name, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`IsActive`,`s`.`Name`,`s`.`ScheduleSiteId` FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleSiteModel.Id);
             command.CreateParameter("@IsActive", ScheduleSiteModel.IsActive);
@@ -184,7 +184,7 @@ namespace BBCoders.Example.DataServices
                 result.Id = (Int64)reader[0];
                 result.IsActive = (Boolean)reader[1];
                 result.Name = (String)reader[2];
-                result.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -192,7 +192,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<int> DeleteScheduleSite(this DbConnection connection, ScheduleSiteKey ScheduleSiteKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id";
+            var sql = $"DELETE FROM `ScheduleSites` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleSiteKey.Id);
             if (connection.State == ConnectionState.Closed)
@@ -216,7 +216,7 @@ namespace BBCoders.Example.DataServices
                 result.ScheduleSite.Id = (Int64)reader[0];
                 result.ScheduleSite.IsActive = (Boolean)reader[1];
                 result.ScheduleSite.Name = (String)reader[2];
-                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSite.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();
@@ -239,7 +239,7 @@ namespace BBCoders.Example.DataServices
                 result.ScheduleSite.Id = (Int64)reader[0];
                 result.ScheduleSite.IsActive = (Boolean)reader[1];
                 result.ScheduleSite.Name = (String)reader[2];
-                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[3];
+                result.ScheduleSite.ScheduleSiteId = (Guid)reader[3];
                 results.Add(result);
             }
             reader.Close();

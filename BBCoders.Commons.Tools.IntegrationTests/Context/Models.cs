@@ -141,4 +141,20 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
         public bool IsActive { get; set; }
 
     }
+
+
+    [Table("Status")]
+    [Index(nameof(StatusId), IsUnique = true)]
+
+    public class Status
+    {
+        public long Id1 { get; set; }
+
+        public long Id2 { get; set; }
+
+        [Required]
+        public Guid StatusId { get; set; }
+
+        public string Description { get; set; }
+    }
 }

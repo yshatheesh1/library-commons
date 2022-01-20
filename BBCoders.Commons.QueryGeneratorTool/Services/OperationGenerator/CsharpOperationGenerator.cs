@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.Linq;
 using BBCoders.Commons.QueryGenerator;
 using BBCoders.Commons.QueryGeneratorTool.Models;
 using Humanizer;
@@ -10,39 +10,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
 {
     public class CsharpOperationGenerator : BaseOperationGenerator
     {
-        public CsharpOperationGenerator(SqlOperationGeneratorDependencies dependencies, QueryOptions options, Language language, List<ITable> tables, List<SqlModel> sqlModels) : base(dependencies, options, language, tables, sqlModels)
+        public CsharpOperationGenerator(SqlOperationGeneratorDependencies dependencies, QueryOptions options, Language language, List<ITable> tables, List<QueryModel> sqlModels) : base(dependencies, options, language, tables, sqlModels)
         {
-        }
-
-        protected override void GenerateMethods(IndentedStringBuilder builder, List<MethodOperation> methodOperations)
-        {
-            GenerateComment(builder);
-            builder.AppendLine("using System;");
-            builder.AppendLine("using System.Linq;");
-            builder.AppendLine("using System.Collections.Generic;");
-            builder.AppendLine("using System.Threading.Tasks;");
-            builder.AppendLine("using System.Data;");
-            builder.AppendLine("using System.Data.Common;");
-            builder.AppendLine("using System.Text;");
-            builder.AppendLine();
-            builder.AppendLine($"namespace {_queryOptions.PackageName}");
-            builder.AppendLine("{");
-            using (builder.Indent())
-            {
-                builder.AppendLine($"public static class {_queryOptions.ClassName}");
-                builder.AppendLine("{");
-                using (builder.Indent())
-                {
-                    foreach (var methodOperation in methodOperations)
-                    {
-                        GenerateMethod(builder, methodOperation);
-                    }
-                    GenerateHelperMethods(builder);
-                }
-                builder.AppendLine("}");
-            }
-
-            builder.AppendLine("}");
         }
 
         protected override void GenerateModel(IndentedStringBuilder builder, ClassModel classModel)
@@ -51,7 +20,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             builder.AppendLine("using System;");
             builder.AppendLine("using System.Collections.Generic;");
             builder.AppendLine();
-            builder.AppendLine($"namespace {_queryOptions.PackageName}");
+            builder.AppendLine($"namespace {_queryOptions.ModelPackageName}");
             builder.AppendLine("{");
             using (builder.Indent())
             {
@@ -103,6 +72,41 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             builder.AppendLine("}");
         }
 
+        protected override void GenerateMethods(IndentedStringBuilder builder, List<MethodOperation> methodOperations)
+        {
+            GenerateComment(builder);
+            builder.AppendLine("using System;");
+            builder.AppendLine("using System.Linq;");
+            builder.AppendLine("using System.Collections.Generic;");
+            builder.AppendLine("using System.Threading.Tasks;");
+            builder.AppendLine("using System.Data;");
+            builder.AppendLine("using System.Data.Common;");
+            builder.AppendLine("using System.Text;");
+            if (!_queryOptions.PackageName.Equals(_queryOptions.ModelPackageName))
+            {
+                builder.AppendLine($"using {_queryOptions.ModelPackageName};");
+            }
+            builder.AppendLine();
+            builder.AppendLine($"namespace {_queryOptions.PackageName}");
+            builder.AppendLine("{");
+            using (builder.Indent())
+            {
+                builder.AppendLine($"public static class {_queryOptions.ClassName}");
+                builder.AppendLine("{");
+                using (builder.Indent())
+                {
+                    foreach (var methodOperation in methodOperations)
+                    {
+                        GenerateMethod(builder, methodOperation);
+                    }
+                    GenerateHelperMethods(builder);
+                }
+                builder.AppendLine("}");
+            }
+
+            builder.AppendLine("}");
+        }
+
         public void GenerateMethod(IndentedStringBuilder builder, MethodOperation methodOperation)
         {
             var methodName = methodOperation.MethodName;
@@ -118,7 +122,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 var inMappings = new List<string>();
                 foreach (var property in methodOperation.InputModel)
                 {
-                    if (IsWhereMappingNeeded(methodOperation, property))
+                    if (property.IsPrimaryKey && methodOperation.IsBatchOperation && (methodOperation.SqlType == SqlType.Select || methodOperation.SqlType == SqlType.Delete))
                     {
                         var propertyName = $"{property.PropertyName.Pluralize()}Joined";
                         builder.AppendLine($"var {propertyName} = string.Join(\",\", {requestModelName}.Select((_, idx) => \"@{property.ColumnName}\" + idx));");
@@ -135,119 +139,21 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 // sql
                 if (methodOperation.SqlType == SqlType.Custom)
                 {
-                    builder.Append($"var sql = @\"");
-                    builder.Append(methodOperation.CustomSql);
-                    builder.AppendLine("\";");
+                    builder.AppendLine($"var sql = @\"{methodOperation.CustomSql}\";");
                 }
-                else if (methodOperation.SqlType == SqlType.Select)
+                if (methodOperation.SqlType == SqlType.Select || methodOperation.SqlType == SqlType.Delete)
                 {
-                    builder.Append($"var sql = @\"");
-                    if (methodOperation.IsBatchOperation)
-                    {
-                        _dependencies.SQLGenerator.SelectBatch(builder, methodOperation.Table, whereMappings.ToArray());
-                    }
-                    else
-                    {
-                        _dependencies.SQLGenerator.Select(builder, methodOperation.Table);
-                    }
-                    builder.AppendLine("\";");
+                    CreateSelect_Delete(methodOperation, builder, whereMappings.ToArray());
                 }
-                else if (methodOperation.SqlType == SqlType.Delete)
+                if (methodOperation.SqlType == SqlType.Insert || methodOperation.SqlType == SqlType.Update)
                 {
-                    builder.Append($"var sql = @\"");
-                    if (methodOperation.IsBatchOperation)
-                    {
-                        _dependencies.SQLGenerator.DeleteBatch(builder, methodOperation.Table, whereMappings.ToArray());
-                    }
-                    else
-                    {
-                        _dependencies.SQLGenerator.Delete(builder, methodOperation.Table);
-                    }
-                    builder.AppendLine("\";");
-                }
-                else if (methodOperation.SqlType == SqlType.Insert)
-                {
-                    if (methodOperation.IsBatchOperation)
-                    {
-                        builder.AppendLine($"var sqlBuilder = new StringBuilder();");
-                        builder.AppendLine($"for (var i = 0; i< {requestModelName}.Count(); i++)");
-                        builder.AppendLine("{");
-                        using (builder.Indent())
-                        {
-                            builder.Append("sqlBuilder.AppendLine(");
-                            _dependencies.SQLGenerator.InsertBatch(builder, methodOperation.Table, whereMappings.ToArray(), "i");
-                            builder.AppendLine("\");");
-                        }
-                        builder.AppendLine("}");
-                        builder.AppendLine("var sql = sqlBuilder.ToString();");
-                    }
-                    else
-                    {
-                        builder.Append($"var sql = @\"");
-                        _dependencies.SQLGenerator.Insert(builder, methodOperation.Table);
-                        builder.AppendLine("\";");
-                    }
-
-                }
-                else if (methodOperation.SqlType == SqlType.Update)
-                {
-                    if (methodOperation.IsBatchOperation)
-                    {
-                        builder.AppendLine($"var sqlBuilder = new StringBuilder();");
-                        builder.AppendLine($"for (var i = 0; i< {requestModelName}.Count(); i++)");
-                        builder.AppendLine("{");
-                        using (builder.Indent())
-                        {
-
-                            builder.Append("sqlBuilder.AppendLine(");
-                            _dependencies.SQLGenerator.UpdateBatch(builder, methodOperation.Table, whereMappings.ToArray(), "{i}");
-                            builder.AppendLine("\");");
-                        }
-                        builder.AppendLine("}");
-                        builder.AppendLine("var sql = sqlBuilder.ToString();");
-                    }
-                    else
-                    {
-                        builder.Append($"var sql = @\"");
-                        _dependencies.SQLGenerator.Update(builder, methodOperation.Table);
-                        builder.AppendLine("\";");
-                    }
-
+                    CreateInsert_Update(methodOperation, builder, requestModelName);
                 }
 
-                builder.AppendLine("var command = connection.CreateCommand(sql, transaction, timeout);");
-                if (methodOperation.IsBatchOperation)
-                {
-                    builder.AppendLine($"for (var i = 0; i< {requestModelName}.Count(); i++)");
-                    builder.AppendLine("{");
-                    using (builder.Indent())
-                    {
-                        foreach (var parameter in methodOperation.InputModel)
-                        {
-                            builder.AppendLine($"command.CreateParameter(\"@{parameter.ColumnName}\" + i, {requestModelName}[i].{parameter.PropertyName});");
-                        }
-                    }
-                    builder.AppendLine("}");
-                }
+                // command parameters
+                CreateCommandParameters(methodOperation, builder, requestModelName);
 
-                foreach (var property in methodOperation.InputModel)
-                {
-                    if (methodOperation.SqlType == SqlType.Insert && property.IsAutoIncrement)
-                        continue;
-                    if (property.IsListType)
-                    {
-                        builder.AppendLine($"{requestModelName}?.{property.PropertyName}.Select((x,y) => command.CreateParameter(\"@{property.ColumnName}\" + y.ToString(), x)).ToArray();");
-                    }
-                    else if (property.DefaultValue != null)
-                    {
-                        builder.AppendLine($"command.CreateParameter(\"{property.ColumnName}\", {property.DefaultValue});");
-                    }
-                    else if (!methodOperation.IsBatchOperation)
-                    {
-                        builder.AppendLine($"command.CreateParameter(\"@{property.ColumnName}\", {requestModelName}.{property.PropertyName});");
-                    }
-                }
-
+                // create connection
                 builder.AppendLine("if (connection.State == ConnectionState.Closed)");
                 using (builder.Indent())
                 {
@@ -262,7 +168,14 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 {
                     builder.AppendLine($"var results = new List<{responseModelName}>();");
                     builder.AppendLine("var reader = await command.ExecuteReaderAsync();");
-                    builder.AppendLine("while (await reader.ReadAsync())");
+                    if (methodOperation.IsBatchOperation && (methodOperation.SqlType == SqlType.Insert || methodOperation.SqlType == SqlType.Update))
+                    {
+                        builder.AppendLine("while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))");
+                    }
+                    else
+                    {
+                        builder.AppendLine("while (await reader.ReadAsync())");
+                    }
                     builder.AppendLine("{");
                     using (builder.Indent())
                     {
@@ -296,12 +209,140 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             }
             builder.AppendLine("}");
         }
-        private bool IsWhereMappingNeeded(MethodOperation methodOperation, ModelParameter parameter)
+
+        private void CreateSelect_Delete(MethodOperation methodOperation, IndentedStringBuilder builder, string[] whereMappings)
         {
-            //&& (methodOperation.SqlType == SqlType.Select || methodOperation.SqlType == SqlType.Delete ||
-            // (methodOperation.SqlType == SqlType.Insert && !parameter.IsAutoIncrement)
-            return parameter.IsPrimaryKey && methodOperation.IsBatchOperation;
+            builder.Append($"var sql = $\"");
+            if (methodOperation.IsBatchOperation)
+            {
+                if (methodOperation.SqlType == SqlType.Select)
+                {
+                    _dependencies.SQLGenerator.Select(builder, methodOperation.Table, whereMappings, true);
+                }
+                else
+                {
+                    _dependencies.SQLGenerator.Delete(builder, methodOperation.Table, whereMappings, true);
+                }
+            }
+            else
+            {
+                var columnMappings = methodOperation.Table.PrimaryKey.Columns.Select(x => "@" + x.Name).ToArray();
+                if (methodOperation.SqlType == SqlType.Select)
+                {
+                    _dependencies.SQLGenerator.Select(builder, methodOperation.Table, columnMappings, false);
+                }
+                else
+                {
+                    _dependencies.SQLGenerator.Delete(builder, methodOperation.Table, columnMappings, false);
+                }
+            }
+            builder.AppendLine("\";");
         }
+
+        private void CreateInsert_Update(MethodOperation methodOperation, IndentedStringBuilder builder, string requestModelName)
+        {
+            if (methodOperation.IsBatchOperation)
+            {
+                builder.AppendLine($"var sqlBuilder = new StringBuilder();");
+                builder.AppendLine($"for (var i = 0; i< {requestModelName}.Count(); i++)");
+                builder.AppendLine("{");
+                using (builder.Indent())
+                {
+                    if (methodOperation.SqlType == SqlType.Insert)
+                    {
+                        builder.Append("sqlBuilder.AppendLine($\"");
+                        var insertValues = methodOperation.InputModel.Where(x => !x.IsAutoIncrement).Select(x => "@" + x.ColumnName + "{i}");
+                        _dependencies.SQLGenerator.Insert(builder, methodOperation.Table, insertValues.ToArray());
+                        builder.AppendLine("\");");
+                    }
+                    else
+                    {
+                        builder.Append("sqlBuilder.AppendLine($\"");
+                        var setValues = methodOperation.InputModel.Where(x => !x.IsPrimaryKey).Select(x => "@" + x.ColumnName + "{i}");
+                        var whereMappings = methodOperation.InputModel.Where(x => x.IsPrimaryKey).Select(x => "@" + x.ColumnName + "{i}");
+                        _dependencies.SQLGenerator.Update(builder, methodOperation.Table, setValues.ToArray(), whereMappings.ToArray());
+                        builder.AppendLine("\");");
+                    }
+                    if (methodOperation.SqlType == SqlType.Insert && methodOperation.InputModel.Any(x => x.IsAutoIncrement))
+                    {
+                        builder.Append("sqlBuilder.AppendLine($\"");
+                        _dependencies.SQLGenerator.SelectLastInserted(builder, methodOperation.Table);
+                        builder.AppendLine("\");");
+                    }
+                    else
+                    {
+                        builder.Append("sqlBuilder.AppendLine($\"");
+                        var columnMappings = methodOperation.Table.PrimaryKey.Columns.Select(x => "@" + x.Name + "{i}").ToArray();
+                        _dependencies.SQLGenerator.Select(builder, methodOperation.Table, columnMappings, false);
+                        builder.AppendLine("\");");
+                    }
+                }
+                builder.AppendLine("}");
+                builder.AppendLine("var sql = sqlBuilder.ToString();");
+            }
+            else
+            {
+                builder.Append($"var sql = @\"");
+                var whereMappings = methodOperation.InputModel.Where(x => x.IsPrimaryKey).Select(x => "@" + x.ColumnName);
+                if (methodOperation.SqlType == SqlType.Insert)
+                {
+                    var insertValues = methodOperation.InputModel.Where(x => !x.IsAutoIncrement).Select(x => "@" + x.ColumnName);
+                    _dependencies.SQLGenerator.Insert(builder, methodOperation.Table, insertValues.ToArray());
+                }
+                else
+                {
+                    var setValues = methodOperation.InputModel.Where(x => !x.IsPrimaryKey).Select(x => "@" + x.ColumnName);
+                    _dependencies.SQLGenerator.Update(builder, methodOperation.Table, setValues.ToArray(), whereMappings.ToArray());
+                }
+                if (methodOperation.InputModel.Any(x => x.IsAutoIncrement))
+                {
+                    _dependencies.SQLGenerator.SelectLastInserted(builder, methodOperation.Table);
+                }
+                else
+                {
+                    _dependencies.SQLGenerator.Select(builder, methodOperation.Table, whereMappings.ToArray(), false);
+                }
+                builder.AppendLine("\";");
+            }
+        }
+
+        private void CreateCommandParameters(MethodOperation methodOperation, IndentedStringBuilder builder, string requestModelName)
+        {
+            builder.AppendLine("var command = connection.CreateCommand(sql, transaction, timeout);");
+            if (methodOperation.IsBatchOperation)
+            {
+                builder.AppendLine($"for (var i = 0; i< {requestModelName}.Count(); i++)");
+                builder.AppendLine("{");
+                using (builder.Indent())
+                {
+                    foreach (var parameter in methodOperation.InputModel)
+                    {
+                        builder.AppendLine($"command.CreateParameter(\"@{parameter.ColumnName}\" + i, {requestModelName}[i].{parameter.PropertyName});");
+                    }
+                }
+                builder.AppendLine("}");
+            }
+
+            foreach (var property in methodOperation.InputModel)
+            {
+                if (methodOperation.SqlType == SqlType.Insert && property.IsAutoIncrement)
+                    continue;
+
+                if (property.IsListType)
+                {
+                    builder.AppendLine($"{requestModelName}?.{property.PropertyName}.Select((x,y) => command.CreateParameter(\"@{property.ColumnName}\" + y, x)).ToArray();");
+                }
+                else if (property.DefaultValue != null)
+                {
+                    builder.AppendLine($"command.CreateParameter(\"@{property.ColumnName}\", {property.DefaultValue});");
+                }
+                else if (!methodOperation.IsBatchOperation)
+                {
+                    builder.AppendLine($"command.CreateParameter(\"@{property.ColumnName}\", {requestModelName}.{property.PropertyName});");
+                }
+            }
+        }
+
         private void GenerateHelperMethods(IndentedStringBuilder builder)
         {
             /*

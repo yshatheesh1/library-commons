@@ -2,19 +2,18 @@
 
   <PropertyGroup>
     <Description>Generates source files for queries</Description> 
-    <Version>0.3.6</Version>
+    <Version>0.4.0</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>BBCoders.Commons.QueryGeneratorTool</RootNamespace>
     <ToolCommandName>bbcoders</ToolCommandName>
     <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.10">
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="5.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
   </ItemGroup>
   

@@ -22,10 +22,10 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
         protected SqlOperationGeneratorDependencies _dependencies;
         protected QueryOptions _queryOptions;
         protected List<ITable> _tables;
-        protected List<SqlModel> _sqlModels;
+        protected List<QueryModel> _sqlModels;
         protected Language _language;
 
-        public BaseOperationGenerator(SqlOperationGeneratorDependencies dependencies, QueryOptions options, Language language, List<ITable> tables, List<SqlModel> sqlModels)
+        public BaseOperationGenerator(SqlOperationGeneratorDependencies dependencies, QueryOptions options, Language language, List<ITable> tables, List<QueryModel> sqlModels)
         {
             _dependencies = dependencies;
             _relationalTypeMappingSource = dependencies.relationalTypeMappingSource;
@@ -48,6 +48,10 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             if (!Directory.Exists(_queryOptions.OutputDirectory))
             {
                 Directory.CreateDirectory(_queryOptions.OutputDirectory);
+            }
+            if (!Directory.Exists(_queryOptions.ModelOutputDirectory))
+            {
+                Directory.CreateDirectory(_queryOptions.ModelOutputDirectory);
             }
             GenerateModels();
             GenerateMethods();
@@ -124,7 +128,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 methods.Add(GenerateCustomMethod(model));
             }
             GenerateMethods(serviceBuilder, methods);
-            var servicePath = Path.Combine(_queryOptions.OutputDirectory, _queryOptions.FileName + "." + _queryOptions.FileExtension);
+            var servicePath = Path.Combine(_queryOptions.OutputDirectory, _queryOptions.FileName + "." + _language.FileExtension);
             File.WriteAllText(servicePath, serviceBuilder.ToString());
 
         }
@@ -205,9 +209,9 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             return methodOp;
         }
 
-        private MethodOperation GenerateCustomMethod(SqlModel sqlModel)
+        private MethodOperation GenerateCustomMethod(QueryModel sqlModel)
         {
-            var inputPrameters1 = sqlModel.BindingParameters.Select(x => CreateModelParameter(x));
+            var inputPrameters1 = sqlModel.Bindings.Select(x => CreateModelParameter(x));
             // generate output model
             var outputParameter = sqlModel.Projections.Where(x => x.Table == null).Select(x => new ModelParameter()
             {
@@ -254,7 +258,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
         {
             var builder = new IndentedStringBuilder();
             GenerateModel(builder, classModel);
-            var modelPath = Path.Combine(_queryOptions.OutputDirectory, classModel.Name + "." + _queryOptions.FileExtension);
+            var modelPath = Path.Combine(_queryOptions.ModelOutputDirectory, classModel.Name + "." + _language.FileExtension);
             File.WriteAllText(modelPath, builder.ToString());
         }
 
@@ -300,7 +304,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             };
         }
 
-        private PropertyModel GetPropertyModel(SqlProjection sqlProjection)
+        private PropertyModel GetPropertyModel(Projection sqlProjection)
         {
             return new PropertyModel()
             {
@@ -320,19 +324,19 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 Type = GetTypeName(column.PropertyMappings.First().Property),
                 IsNullable = column.PropertyMappings.First().Property.IsNullable,
                 IsPrimaryKey = primaryKeyColumns.Any(x => x.Name.Equals(column.Name)),
-                IsAutoIncrement = column.PropertyMappings.First().Property.ValueGenerated == ValueGenerated.OnAdd
+                IsAutoIncrement = primaryKeyColumns.Any(x => x.Name.Equals(column.Name) && x.PropertyMappings.First().Property.ValueGenerated == ValueGenerated.OnAdd)
             };
         }
 
-        private ModelParameter CreateModelParameter(SqlBinding sqlBinding)
+        private ModelParameter CreateModelParameter(Binding sqlBinding)
         {
             return new ModelParameter()
             {
                 ColumnName = sqlBinding.Name,
-                PropertyName = sqlBinding.Value.Name,
+                PropertyName = sqlBinding.Value?.Name,
                 DefaultValue = sqlBinding.DefaultValue,
-                Type = GetTypeName(sqlBinding.Value.Type),
-                IsListType = sqlBinding.Value.IsList
+                Type = sqlBinding.Value != null ? GetTypeName(sqlBinding.Value.Type) : null,
+                IsListType = sqlBinding.Value != null ? sqlBinding.Value.IsList : false
             };
         }
 

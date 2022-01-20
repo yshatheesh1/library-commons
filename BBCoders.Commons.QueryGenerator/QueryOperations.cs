@@ -59,6 +59,12 @@ namespace BBCoders.Commons.QueryGenerator
         public abstract void Add<T>();
 
         /// <summary>
+        /// Add CRUD operations for given sql model
+        /// </summary>
+        /// <param name="queryModel"></param>
+        public abstract void Add(QueryModel queryModel);
+
+        /// <summary>
         /// Add Custom query operation
         /// </summary>
         /// <param name="name">name of the method</param>

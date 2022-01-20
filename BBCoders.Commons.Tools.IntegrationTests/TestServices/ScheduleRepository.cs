@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
 using System.Text;
+using BBCoders.Example.DataModels;
 
 namespace BBCoders.Example.DataServices
 {
@@ -20,7 +21,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<List<ScheduleModel>> SelectBatchSchedule(this DbConnection connection, List<ScheduleKey> ScheduleKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", ScheduleKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @");";
+            var sql = $"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< ScheduleKey.Count(); i++)
             {
@@ -41,7 +42,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -50,11 +51,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<ScheduleModel>> InsertBatchSchedule(this DbConnection connection, List<ScheduleModel> ScheduleModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", ScheduleModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< ScheduleModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"INSERT INTO `Schedules` (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId{i}, @CreatedById{i}, @CreatedDate{i}, @FingerPrintId{i}, @LastUpdatedById{i}, @LastUpdatedDate{i}, @ScheduleDate{i}, @ScheduleId{i}, @ScheduleSiteId{i}); SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();");
+                sqlBuilder.AppendLine($"INSERT INTO `Schedules` (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId{i}, @CreatedById{i}, @CreatedDate{i}, @FingerPrintId{i}, @LastUpdatedById{i}, @LastUpdatedDate{i}, @ScheduleDate{i}, @ScheduleId{i}, @ScheduleSiteId{i});");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -75,7 +76,7 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<ScheduleModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new ScheduleModel();
                 result.Id = (Int64)reader[0];
@@ -86,7 +87,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -95,11 +96,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<ScheduleModel>> UpdateBatchSchedule(this DbConnection connection, List<ScheduleModel> ScheduleModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", ScheduleModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< ScheduleModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId{i}, `s`.`CreatedById` = @CreatedById{i}, `s`.`CreatedDate` = @CreatedDate{i}, `s`.`FingerPrintId` = @FingerPrintId{i}, `s`.`LastUpdatedById` = @LastUpdatedById{i}, `s`.`LastUpdatedDate` = @LastUpdatedDate{i}, `s`.`ScheduleDate` = @ScheduleDate{i}, `s`.`ScheduleId` = @ScheduleId{i}, `s`.`ScheduleSiteId` = @ScheduleSiteId{i} WHERE `s`.`Id` = IdsJoined;SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId{i}, `s`.`CreatedById` = @CreatedById{i}, `s`.`CreatedDate` = @CreatedDate{i}, `s`.`FingerPrintId` = @FingerPrintId{i}, `s`.`LastUpdatedById` = @LastUpdatedById{i}, `s`.`LastUpdatedDate` = @LastUpdatedDate{i}, `s`.`ScheduleDate` = @ScheduleDate{i}, `s`.`ScheduleId` = @ScheduleId{i}, `s`.`ScheduleSiteId` = @ScheduleSiteId{i} WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id{i};");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -120,7 +121,7 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<ScheduleModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new ScheduleModel();
                 result.Id = (Int64)reader[0];
@@ -131,7 +132,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -141,7 +142,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<int> DeleteBatchSchedule(this DbConnection connection, List<ScheduleKey> ScheduleKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", ScheduleKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @")";
+            var sql = $"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< ScheduleKey.Count(); i++)
             {
@@ -153,7 +154,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleModel> SelectSchedule(this DbConnection connection, ScheduleKey ScheduleKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = $"SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleKey.Id);
             if (connection.State == ConnectionState.Closed)
@@ -171,7 +172,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -180,8 +181,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleModel> InsertSchedule(this DbConnection connection, ScheduleModel ScheduleModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"INSERT INTO Schedules (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId, @CreatedById, @CreatedDate, @FingerPrintId, @LastUpdatedById, @LastUpdatedDate, @ScheduleDate, @ScheduleId, @ScheduleSiteId);
-            SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();";
+            var sql = @"INSERT INTO `Schedules` (`ActionId`, `CreatedById`, `CreatedDate`, `FingerPrintId`, `LastUpdatedById`, `LastUpdatedDate`, `ScheduleDate`, `ScheduleId`, `ScheduleSiteId`) VALUES (@ActionId, @CreatedById, @CreatedDate, @FingerPrintId, @LastUpdatedById, @LastUpdatedDate, @ScheduleDate, @ScheduleId, @ScheduleSiteId);SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@ActionId", ScheduleModel.ActionId);
             command.CreateParameter("@CreatedById", ScheduleModel.CreatedById);
@@ -207,7 +207,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -216,7 +216,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<ScheduleModel> UpdateSchedule(this DbConnection connection, ScheduleModel ScheduleModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId, `s`.`CreatedById` = @CreatedById, `s`.`CreatedDate` = @CreatedDate, `s`.`FingerPrintId` = @FingerPrintId, `s`.`LastUpdatedById` = @LastUpdatedById, `s`.`LastUpdatedDate` = @LastUpdatedDate, `s`.`ScheduleDate` = @ScheduleDate, `s`.`ScheduleId` = @ScheduleId, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = @"UPDATE `Schedules` AS `s` SET `s`.`ActionId` = @ActionId, `s`.`CreatedById` = @CreatedById, `s`.`CreatedDate` = @CreatedDate, `s`.`FingerPrintId` = @FingerPrintId, `s`.`LastUpdatedById` = @LastUpdatedById, `s`.`LastUpdatedDate` = @LastUpdatedDate, `s`.`ScheduleDate` = @ScheduleDate, `s`.`ScheduleId` = @ScheduleId, `s`.`ScheduleSiteId` = @ScheduleSiteId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`ActionId`,`s`.`CreatedById`,`s`.`CreatedDate`,`s`.`FingerPrintId`,`s`.`LastUpdatedById`,`s`.`LastUpdatedDate`,`s`.`ScheduleDate`,`s`.`ScheduleId`,`s`.`ScheduleSiteId` FROM `Schedules` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleModel.Id);
             command.CreateParameter("@ActionId", ScheduleModel.ActionId);
@@ -243,7 +243,7 @@ namespace BBCoders.Example.DataServices
                 result.LastUpdatedById = (Int64)reader[5];
                 result.LastUpdatedDate = (DateTime)reader[6];
                 result.ScheduleDate = (DateTime)reader[7];
-                result.ScheduleId = (Byte[])reader[8];
+                result.ScheduleId = (Guid)reader[8];
                 result.ScheduleSiteId = (Int64)reader[9];
                 results.Add(result);
             }
@@ -252,7 +252,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<int> DeleteSchedule(this DbConnection connection, ScheduleKey ScheduleKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id";
+            var sql = $"DELETE FROM `Schedules` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", ScheduleKey.Id);
             if (connection.State == ConnectionState.Closed)
@@ -275,7 +275,7 @@ namespace BBCoders.Example.DataServices
                 var result = new GetSheduleActionResponseModel();
                 result.Schedule.action = Convert.IsDBNull(reader[0]) ? null : (Int64?)reader[0];
                 result.Schedule.id = (Int64)reader[1];
-                result.Schedule.schedule_id = (Byte[])reader[2];
+                result.Schedule.schedule_id = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -304,12 +304,12 @@ namespace BBCoders.Example.DataServices
                 result.Schedule.LastUpdatedById = (Int64)reader[5];
                 result.Schedule.LastUpdatedDate = (DateTime)reader[6];
                 result.Schedule.ScheduleDate = (DateTime)reader[7];
-                result.Schedule.ScheduleId = (Byte[])reader[8];
+                result.Schedule.ScheduleId = (Guid)reader[8];
                 result.Schedule.ScheduleSiteId = (Int64)reader[9];
                 result.ScheduleSite.Id = (Int64)reader[10];
                 result.ScheduleSite.IsActive = (Boolean)reader[11];
                 result.ScheduleSite.Name = (String)reader[12];
-                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[13];
+                result.ScheduleSite.ScheduleSiteId = (Guid)reader[13];
                 results.Add(result);
             }
             reader.Close();
@@ -340,15 +340,15 @@ namespace BBCoders.Example.DataServices
                 result.Schedule.LastUpdatedById = (Int64)reader[5];
                 result.Schedule.LastUpdatedDate = (DateTime)reader[6];
                 result.Schedule.ScheduleDate = (DateTime)reader[7];
-                result.Schedule.ScheduleId = (Byte[])reader[8];
+                result.Schedule.ScheduleId = (Guid)reader[8];
                 result.Schedule.ScheduleSiteId = (Int64)reader[9];
                 result.Action.Id = (Int64)reader[10];
-                result.Action.ActionId = (Byte[])reader[11];
+                result.Action.ActionId = (Guid)reader[11];
                 result.Action.Name = (String)reader[12];
                 result.ScheduleSite.Id = (Int64)reader[13];
                 result.ScheduleSite.IsActive = (Boolean)reader[14];
                 result.ScheduleSite.Name = (String)reader[15];
-                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[16];
+                result.ScheduleSite.ScheduleSiteId = (Guid)reader[16];
                 results.Add(result);
             }
             reader.Close();
@@ -379,17 +379,17 @@ namespace BBCoders.Example.DataServices
                 result.Schedule.LastUpdatedById = (Int64)reader[5];
                 result.Schedule.LastUpdatedDate = (DateTime)reader[6];
                 result.Schedule.ScheduleDate = (DateTime)reader[7];
-                result.Schedule.ScheduleId = (Byte[])reader[8];
+                result.Schedule.ScheduleId = (Guid)reader[8];
                 result.Schedule.ScheduleSiteId = (Int64)reader[9];
                 result.ScheduleSite.Id = (Int64)reader[10];
                 result.ScheduleSite.IsActive = (Boolean)reader[11];
                 result.ScheduleSite.Name = (String)reader[12];
-                result.ScheduleSite.ScheduleSiteId = (Byte[])reader[13];
+                result.ScheduleSite.ScheduleSiteId = (Guid)reader[13];
                 result.Fingerprint.Id = Convert.IsDBNull(reader[14]) ? null : (Int64?)reader[14];
                 result.Fingerprint.CreatedById = Convert.IsDBNull(reader[15]) ? null : (Int64?)reader[15];
                 result.Fingerprint.CreatedDate = Convert.IsDBNull(reader[16]) ? null : (DateTime?)reader[16];
                 result.Fingerprint.ExpirationDate = Convert.IsDBNull(reader[17]) ? null : (DateTime?)reader[17];
-                result.Fingerprint.FingerprintId = Convert.IsDBNull(reader[18]) ? null : (Byte[]?)reader[18];
+                result.Fingerprint.FingerprintId = Convert.IsDBNull(reader[18]) ? null : (Guid?)reader[18];
                 result.Fingerprint.IsActive = Convert.IsDBNull(reader[19]) ? null : (Boolean?)reader[19];
                 result.Fingerprint.LastUpdatedById = Convert.IsDBNull(reader[20]) ? null : (Int64?)reader[20];
                 result.Fingerprint.NmlsId = Convert.IsDBNull(reader[21]) ? null : (Int64?)reader[21];
@@ -398,7 +398,7 @@ namespace BBCoders.Example.DataServices
                 result.Fingerprint.UpdatedDate = Convert.IsDBNull(reader[24]) ? null : (DateTime?)reader[24];
                 result.State.Id = Convert.IsDBNull(reader[25]) ? null : (Int64?)reader[25];
                 result.State.Name = Convert.IsDBNull(reader[26]) ? null : (String?)reader[26];
-                result.State.StateId = Convert.IsDBNull(reader[27]) ? null : (Byte[]?)reader[27];
+                result.State.StateId = Convert.IsDBNull(reader[27]) ? null : (Guid?)reader[27];
                 results.Add(result);
             }
             reader.Close();

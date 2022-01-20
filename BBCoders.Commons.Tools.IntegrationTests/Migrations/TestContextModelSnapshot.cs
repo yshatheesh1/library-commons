@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+#nullable disable
+
 namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 {
     [DbContext(typeof(TestContext))]
@@ -14,8 +16,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 64)
-                .HasAnnotation("ProductVersion", "5.0.10");
+                .HasAnnotation("ProductVersion", "6.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Action", b =>
                 {
@@ -23,9 +25,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
 
-                    b.Property<byte[]>("ActionId")
-                        .IsRequired()
-                        .HasColumnType("varbinary(16)");
+                    b.Property<Guid>("ActionId")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -50,15 +51,15 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP()");
 
                     b.Property<DateTime?>("ExpirationDate")
                         .HasColumnType("datetime");
 
-                    b.Property<byte[]>("FingerprintId")
-                        .IsRequired()
-                        .HasColumnType("varbinary(16)");
+                    b.Property<Guid>("FingerprintId")
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -115,9 +116,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.Property<DateTime>("ScheduleDate")
                         .HasColumnType("datetime");
 
-                    b.Property<byte[]>("ScheduleId")
-                        .IsRequired()
-                        .HasColumnType("varbinary(16)");
+                    b.Property<Guid>("ScheduleId")
+                        .HasColumnType("char(36)");
 
                     b.Property<long>("ScheduleSiteId")
                         .HasColumnType("bigint");
@@ -150,9 +150,8 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<byte[]>("ScheduleSiteId")
-                        .IsRequired()
-                        .HasColumnType("varbinary(16)");
+                    b.Property<Guid>("ScheduleSiteId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -169,11 +168,10 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
-                    b.Property<byte[]>("StateId")
-                        .IsRequired()
-                        .HasColumnType("varbinary(16)");
+                    b.Property<Guid>("StateId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -181,6 +179,28 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                         .IsUnique();
 
                     b.ToTable("States");
+                });
+
+            modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Status", b =>
+                {
+                    b.Property<long>("Id1")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("Id2")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id1", "Id2");
+
+                    b.HasIndex("StatusId")
+                        .IsUnique();
+
+                    b.ToTable("Status");
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Fingerprint", b =>

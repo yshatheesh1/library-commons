@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Data;
 using System.Data.Common;
 using System.Text;
+using BBCoders.Example.DataModels;
 
 namespace BBCoders.Example.DataServices
 {
@@ -20,7 +21,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<List<StateModel>> SelectBatchState(this DbConnection connection, List<StateKey> StateKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", StateKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @");";
+            var sql = $"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< StateKey.Count(); i++)
             {
@@ -35,7 +36,7 @@ namespace BBCoders.Example.DataServices
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -43,11 +44,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<StateModel>> InsertBatchState(this DbConnection connection, List<StateModel> StateModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", StateModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< StateModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name{i}, @StateId{i}); SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();");
+                sqlBuilder.AppendLine($"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name{i}, @StateId{i});");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -61,12 +62,12 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<StateModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -74,11 +75,11 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<List<StateModel>> UpdateBatchState(this DbConnection connection, List<StateModel> StateModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var IdsJoined = string.Join(",", StateModel.Select((_, idx) => "@Id" + idx));
             var sqlBuilder = new StringBuilder();
             for (var i = 0; i< StateModel.Count(); i++)
             {
-                sqlBuilder.AppendLine($"UPDATE `States` AS `s` SET `s`.`Name` = @Name{i}, `s`.`StateId` = @StateId{i} WHERE `s`.`Id` = IdsJoined;SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"UPDATE `States` AS `s` SET `s`.`Name` = @Name{i}, `s`.`StateId` = @StateId{i} WHERE `s`.`Id` = @Id{i};");
+                sqlBuilder.AppendLine($"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id{i};");
             }
             var sql = sqlBuilder.ToString();
             var command = connection.CreateCommand(sql, transaction, timeout);
@@ -92,12 +93,12 @@ namespace BBCoders.Example.DataServices
                 await connection.OpenAsync();
             var results = new List<StateModel>();
             var reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            while (await reader.ReadAsync() || (await reader.NextResultAsync() && await reader.ReadAsync()))
             {
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -106,7 +107,7 @@ namespace BBCoders.Example.DataServices
         public static async Task<int> DeleteBatchState(this DbConnection connection, List<StateKey> StateKey, DbTransaction transaction = null, int? timeout = null)
         {
             var IdsJoined = string.Join(",", StateKey.Select((_, idx) => "@Id" + idx));
-            var sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + @")";
+            var sql = $"DELETE FROM `States` AS `s` WHERE `s`.`Id` IN (" + IdsJoined + ");";
             var command = connection.CreateCommand(sql, transaction, timeout);
             for (var i = 0; i< StateKey.Count(); i++)
             {
@@ -118,7 +119,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<StateModel> SelectState(this DbConnection connection, StateKey StateKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = $"SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", StateKey.Id);
             if (connection.State == ConnectionState.Closed)
@@ -130,7 +131,7 @@ namespace BBCoders.Example.DataServices
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -138,8 +139,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<StateModel> InsertState(this DbConnection connection, StateModel StateModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"INSERT INTO States (`Name`, `StateId`) VALUES (@Name, @StateId);
-            SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID();";
+            var sql = @"INSERT INTO `States` (`Name`, `StateId`) VALUES (@Name, @StateId);SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Name", StateModel.Name);
             command.CreateParameter("@StateId", StateModel.StateId);
@@ -152,7 +152,7 @@ namespace BBCoders.Example.DataServices
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -160,7 +160,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<StateModel> UpdateState(this DbConnection connection, StateModel StateModel, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
+            var sql = @"UPDATE `States` AS `s` SET `s`.`Name` = @Name, `s`.`StateId` = @StateId WHERE `s`.`Id` = @Id;SELECT `s`.`Id`,`s`.`Name`,`s`.`StateId` FROM `States` AS `s` WHERE `s`.`Id` = LAST_INSERT_ID() AND ROW_COUNT() = 1;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", StateModel.Id);
             command.CreateParameter("@Name", StateModel.Name);
@@ -174,7 +174,7 @@ namespace BBCoders.Example.DataServices
                 var result = new StateModel();
                 result.Id = (Int64)reader[0];
                 result.Name = Convert.IsDBNull(reader[1]) ? null : (String?)reader[1];
-                result.StateId = (Byte[])reader[2];
+                result.StateId = (Guid)reader[2];
                 results.Add(result);
             }
             reader.Close();
@@ -182,7 +182,7 @@ namespace BBCoders.Example.DataServices
         }
         public static async Task<int> DeleteState(this DbConnection connection, StateKey StateKey, DbTransaction transaction = null, int? timeout = null)
         {
-            var sql = @"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id";
+            var sql = $"DELETE FROM `States` AS `s` WHERE `s`.`Id` = @Id;";
             var command = connection.CreateCommand(sql, transaction, timeout);
             command.CreateParameter("@Id", StateKey.Id);
             if (connection.State == ConnectionState.Closed)
