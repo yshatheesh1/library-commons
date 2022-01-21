@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using BBCoders.Commons.QueryGeneratorTool.Helpers;
-using BBCoders.Commons.Utilities;
+using BBCoders.Commons.QueryGeneratorTool.Models;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace BBCoders.Commons.QueryGeneratorTool.Services.SqlGenerator
@@ -16,134 +16,127 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services.SqlGenerator
             this._sqlGenerationHelper = sqlGenerationHelper;
         }
 
-        public void Select(IndentedStringBuilder builder, ITable table, string[] whereMappings, Boolean isDynamic = false)
+        public void Select(IndentedStringBuilder builder, List<ModelParameter> table, string[] whereMappings, Boolean isDynamic = false)
         {
-            var parameters = table.GetMappings();
-            var keyColumns = parameters.Where(x => x.isPrimaryKey());
-            var columns = keyColumns.Select(x => x.Name).ToArray();
-            var selectColumns = table.Columns.Select(column => DelimitColumn(table.Name, column.Name, true));
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var keyColumns = table.Where(x => x.IsPrimaryKey);
+            var columns = keyColumns.Select(x => x.ColumnName).ToArray();
+            var selectColumns = table.Select(column => DelimitColumn(tableName, column.ColumnName, true));
             if (isDynamic)
             {
-                builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(table.Name, table.Schema, true)} {WhereInClause(table.Name, columns, whereMappings, true)};");
+                builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(tableName, tableSchema, true)} {WhereInClause(tableName, columns, whereMappings, true)};");
             }
             else
             {
-                builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(table.Name, table.Schema, true)} {WhereEqualClause(table.Name, columns, whereMappings, true)};");
+                builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(tableName, tableSchema, true)} {WhereEqualClause(tableName, columns, whereMappings, true)};");
             }
         }
 
-
-        public void Delete(IndentedStringBuilder builder, ITable table, string[] whereMappings, bool isDynamic = false)
+        public void Delete(IndentedStringBuilder builder, List<ModelParameter> table, string[] whereMappings, bool isDynamic = false)
         {
-            var keyColumns = table.GetMappings().Where(x => x.isPrimaryKey());
-            var columns = keyColumns.Select(x => x.Name).ToArray();
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var keyColumns = table.Where(x => x.IsPrimaryKey);
+            var columns = keyColumns.Select(x => x.ColumnName).ToArray();
             if (isDynamic)
             {
-                builder.Append($"DELETE FROM {DelimitTable(table.Name, table.Schema, true)} {WhereInClause(table.Name, columns, whereMappings, true)};");
+                builder.Append($"DELETE FROM {DelimitTable(tableName, tableSchema, true)} {WhereInClause(tableName, columns, whereMappings, true)};");
             }
             else
             {
-                builder.Append($"DELETE FROM {DelimitTable(table.Name, table.Schema, true)} {WhereEqualClause(table.Name, columns, whereMappings, true)};");
+                builder.Append($"DELETE FROM {DelimitTable(tableName, tableSchema, true)} {WhereEqualClause(tableName, columns, whereMappings, true)};");
             }
         }
 
-        public void Insert(IndentedStringBuilder builder, ITable table, string[] insertValues)
+        public void Insert(IndentedStringBuilder builder, List<ModelParameter> table, string[] insertValues)
         {
-            var columnMappings = table.GetMappings();
-            var selectColumns = table.Columns.Select(column => DelimitColumn(table.Name, column.Name, true));
-            var columns = columnMappings.Where(x => !x.isAutoIncrement());
-            var insertColumns = columns.Select(column => DelimitColumn(table.Name, column.Name, false));
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var selectColumns = table.Select(column => DelimitColumn(tableName, column.ColumnName, true));
+            var columns = table.Where(x => !x.IsAutoIncrement);
+            var insertColumns = columns.Select(column => DelimitColumn(tableName, column.ColumnName, false));
 
-            builder.Append($"INSERT INTO {DelimitTable(table.Name, table.Schema, false)} ({string.Join(", ", insertColumns)}) VALUES ({string.Join(", ", insertValues)});");
+            builder.Append($"INSERT INTO {DelimitTable(tableName, tableSchema, false)} ({string.Join(", ", insertColumns)}) VALUES ({string.Join(", ", insertValues)});");
         }
 
-        public void SelectLastInserted(IndentedStringBuilder builder, ITable table)
+        public void SelectLastInserted(IndentedStringBuilder builder, List<ModelParameter> table)
         {
-            var parameters = table.GetMappings();
-            var columns = parameters.Where(x => x.isPrimaryKey()).Select(x => x.Name).ToArray();
-            var autoIncrementColumn = parameters.FirstOrDefault(x => x.isAutoIncrement());
-            var selectColumns = table.Columns.Select(column => DelimitColumn(table.Name, column.Name, true));
-            builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(table.Name, table.Schema, true)} WHERE {DelimitColumn(table.Name, autoIncrementColumn.Name, true)} = LAST_INSERT_ID() AND ROW_COUNT() = 1;");
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var columns = table.Where(x => x.IsPrimaryKey).Select(x => x.ColumnName).ToArray();
+            var autoIncrementColumn = table.FirstOrDefault(x => x.IsAutoIncrement);
+            var selectColumns = table.Select(column => DelimitColumn(tableName, column.ColumnName, true));
+            builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(tableName, tableSchema, true)} WHERE {DelimitColumn(tableName, autoIncrementColumn.ColumnName, true)} = LAST_INSERT_ID() AND ROW_COUNT() = 1;");
         }
 
 
-        public void Update(IndentedStringBuilder builder, ITable table, string[] setMappings, string[] whereMappings)
+        public void Update(IndentedStringBuilder builder, List<ModelParameter> table, string[] setMappings, string[] whereMappings)
         {
-            var parameters = table.GetMappings();
-            var columns = parameters.Where(x => !x.isPrimaryKey()).Select(x => x.Name).ToArray();
-            var keyColumns = parameters.Where(x => x.isPrimaryKey()).Select(x => x.Name).ToArray();
-           // var keyColumnMappings = keyColumns.Select(column => "@" + column + placeholder).ToArray();
-            // var setColumn = new string[columns.Count()];
-            // var setValue = new string[columns.Count()];
-            // for (var i = 0; i < columns.Count(); i++)
-            // {
-            //     var column = columns.ElementAt(i);
-            //     var delimitColumn = DelimitColumn(table.Name, column.Name, true);
-            //     setColumn[i] = column.Name;
-            //     setValue[i] = column.hasDefaultValue() ? $"If(@{column.Name}{placeholder} IS NULL,DEFAULT({delimitColumn}), @{column.Name}{placeholder})" : $"@{column.Name}{placeholder}";
-            // }
-            /*
-                UPDATE `States` SET `Name` = @p0, `StateId` = @p1 WHERE `Id` = @p2;
-                UPDATE `States` SET `Name` = @p3, `StateId` = @p4 WHERE `Id` = @p5;
-            */
-            builder.Append($"UPDATE {DelimitTable(table.Name, table.Schema, true)} {SetClause(table.Name, columns, setMappings, true)} {WhereEqualClause(table.Name, keyColumns, whereMappings, true)};");
-
-            //  builder.Append($"UPDATE {DelimitTable(table.Name, table.Schema, true)} {SetClause(table.Name, setColumn, setValue, true)} {WhereClause(table.Name, keyColumns, keyColumnMappings, true)};");
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var columns = table.Where(x => !x.IsPrimaryKey).Select(x => x.ColumnName).ToArray();
+            var keyColumns = table.Where(x => x.IsPrimaryKey).Select(x => x.ColumnName).ToArray();
+            builder.Append($"UPDATE {DelimitTable(tableName, tableSchema, true)} {SetClause(tableName, columns, setMappings, true)} {WhereEqualClause(tableName, keyColumns, whereMappings, true)};");
         }
 
 
 
-        public void Insert(IndentedStringBuilder builder, ITable table)
-        {
-            var columnMappings = table.GetMappings();
-            var autoIncrementColumn = columnMappings.FirstOrDefault(x => x.isAutoIncrement());
-            var columns = columnMappings.Where(x => !x.isAutoIncrement());
-            var selectColumns = table.Columns.Select(column => DelimitColumn(table.Name, column.Name, true));
-            var insertColumns = new string[columns.Count()];
-            var insertValues = new string[columns.Count()];
-            for (var i = 0; i < columns.Count(); i++)
-            {
-                var column = columns.ElementAt(i);
-                insertColumns[i] = DelimitColumn(table.Name, column.Name, false);
-                insertValues[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({DelimitColumn(table.Name, column.Name)}), @{column.Name})" : $"@{column.Name}";
-            }
-            builder.AppendLine($"INSERT INTO {table.Name} ({string.Join(", ", insertColumns)}) VALUES ({string.Join(", ", insertValues)});");
-            if (autoIncrementColumn != null)
-                builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(table.Name, table.Schema, true)} WHERE {DelimitColumn(table.Name, autoIncrementColumn.Name, true)} = LAST_INSERT_ID();");
-            else
-            {
-                var keyColumns = table.PrimaryKey.Columns.Select(x => "@" + x.Name).ToArray();
-                Select(builder, table, keyColumns, false);
-            }
+        // public void Insert(IndentedStringBuilder builder, List<ModelParameter> table)
+        // {
+        //     var tableName = table.First().TableName;
+        //     var tableSchema = table.First().SchemaName;
+        //     var autoIncrementColumn = table.FirstOrDefault(x => x.IsAutoIncrement);
+        //     var columns = table.Where(x => !x.IsAutoIncrement);
+        //     var selectColumns = table.Select(column => DelimitColumn(tableName, column.ColumnName, true));
+        //     var insertColumns = new string[columns.Count()];
+        //     var insertValues = new string[columns.Count()];
+        //     for (var i = 0; i < columns.Count(); i++)
+        //     {
+        //         var column = columns.ElementAt(i);
+        //         insertColumns[i] = DelimitColumn(table.Name, column.Name, false);
+        //         insertValues[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({DelimitColumn(table.Name, column.Name)}), @{column.Name})" : $"@{column.Name}";
+        //     }
+        //     builder.AppendLine($"INSERT INTO {table.Name} ({string.Join(", ", insertColumns)}) VALUES ({string.Join(", ", insertValues)});");
+        //     if (autoIncrementColumn != null)
+        //         builder.Append($"SELECT {string.Join(",", selectColumns)} FROM {DelimitTable(table.Name, table.Schema, true)} WHERE {DelimitColumn(table.Name, autoIncrementColumn.Name, true)} = LAST_INSERT_ID();");
+        //     else
+        //     {
+        //         var keyColumns = table.PrimaryKey.Columns.Select(x => "@" + x.Name).ToArray();
+        //         Select(builder, table, keyColumns, false);
+        //     }
 
-        }
+        // }
 
-        public void Delete(IndentedStringBuilder builder, ITable table)
+        public void Delete(IndentedStringBuilder builder, List<ModelParameter> table)
         {
-            var keyColumns = table.GetMappings().Where(x => x.isPrimaryKey());
-            var columns = keyColumns.Select(x => x.Name).ToArray();
+            var tableName = table.First().TableName;
+            var tableSchema = table.First().SchemaName;
+            var keyColumns = table.Where(x => x.IsPrimaryKey);
+            var columns = keyColumns.Select(x => x.ColumnName).ToArray();
             var columnMappings = columns.Select(x => "@" + x).ToArray();
-            builder.Append($"DELETE FROM {DelimitTable(table.Name, table.Schema, true)} {WhereEqualClause(table.Name, columns, columnMappings, true)}");
+            builder.Append($"DELETE FROM {DelimitTable(tableName, tableSchema, true)} {WhereEqualClause(tableName, columns, columnMappings, true)}");
         }
 
-        public void Update(IndentedStringBuilder builder, ITable table)
-        {
-            var parameters = table.GetMappings();
-            var columns = parameters.Where(x => !x.isPrimaryKey());
-            var keyColumns = parameters.Where(x => x.isPrimaryKey()).Select(x => x.Name).ToArray();
-            var keyColumnMappings = keyColumns.Select(x => "@" + x).ToArray();
-            var setColumn = new string[columns.Count()];
-            var setValue = new string[columns.Count()];
-            for (var i = 0; i < columns.Count(); i++)
-            {
-                var column = columns.ElementAt(i);
-                var delimitColumn = DelimitColumn(table.Name, column.Name, true);
-                setColumn[i] = column.Name;
-                setValue[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({delimitColumn}), @{column.Name})" : $"@{column.Name}";
-            }
-            builder.Append($"UPDATE {DelimitTable(table.Name, table.Schema, true)} {SetClause(table.Name, setColumn, setValue, true)} {WhereEqualClause(table.Name, keyColumns, keyColumnMappings, true)};");
-            Select(builder, table, keyColumnMappings, false);
-        }
+        // public void Update(IndentedStringBuilder builder, List<ModelParameter> table)
+        // {
+        //     var tableName = table.First().TableName;
+        //     var tableSchema = table.First().SchemaName;
+        //     var columns = table.Where(x => !x.IsPrimaryKey);
+        //     var keyColumns = table.Where(x => x.IsPrimaryKey).Select(x => x.ColumnName).ToArray();
+        //     var keyColumnMappings = keyColumns.Select(x => "@" + x).ToArray();
+        //     var setColumn = new string[columns.Count()];
+        //     var setValue = new string[columns.Count()];
+        //     for (var i = 0; i < columns.Count(); i++)
+        //     {
+        //         var column = columns.ElementAt(i);
+        //         var delimitColumn = DelimitColumn(tableName, column.ColumnName, true);
+        //         setColumn[i] = column.ColumnName;
+        //         setValue[i] = column.hasDefaultValue() ? $"If(@{column.Name} IS NULL,DEFAULT({delimitColumn}), @{column.Name})" : $"@{column.Name}";
+        //     }
+        //     builder.Append($"UPDATE {DelimitTable(table.Name, table.Schema, true)} {SetClause(table.Name, setColumn, setValue, true)} {WhereEqualClause(table.Name, keyColumns, keyColumnMappings, true)};");
+        //     Select(builder, table, keyColumnMappings, false);
+        // }
 
         protected string WhereInClause(string table, string[] columns, string[] columnMappings, bool alias)
         {

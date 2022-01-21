@@ -38,7 +38,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.HasIndex("ActionId")
                         .IsUnique();
 
-                    b.ToTable("Actions");
+                    b.ToTable("Actions", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Fingerprint", b =>
@@ -86,7 +86,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 
                     b.HasIndex("StateId");
 
-                    b.ToTable("Fingerprint");
+                    b.ToTable("Fingerprint", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Schedule", b =>
@@ -133,7 +133,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
 
                     b.HasIndex("ScheduleSiteId");
 
-                    b.ToTable("Schedules");
+                    b.ToTable("Schedules", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.ScheduleSite", b =>
@@ -158,7 +158,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.HasIndex("ScheduleSiteId")
                         .IsUnique();
 
-                    b.ToTable("ScheduleSites");
+                    b.ToTable("ScheduleSites", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.State", b =>
@@ -178,7 +178,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.HasIndex("StateId")
                         .IsUnique();
 
-                    b.ToTable("States");
+                    b.ToTable("States", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Status", b =>
@@ -200,7 +200,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Migrations
                     b.HasIndex("StatusId")
                         .IsUnique();
 
-                    b.ToTable("Status");
+                    b.ToTable("Status", (string)null);
                 });
 
             modelBuilder.Entity("BBCoders.Commons.Tools.IntegrationTests.Context.Fingerprint", b =>

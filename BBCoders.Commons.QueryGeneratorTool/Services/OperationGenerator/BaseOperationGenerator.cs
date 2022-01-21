@@ -1,6 +1,6 @@
 using System;
+using System.Text.Json;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -41,16 +41,14 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
 
         public void Generate()
         {
-            // while (!Debugger.IsAttached)
-            // {
-            //     Thread.Sleep(233);
-            // }
             if (!Directory.Exists(_queryOptions.OutputDirectory))
             {
+                Reporter.WriteVerbose("Creating directory for services - " + _queryOptions.OutputDirectory);
                 Directory.CreateDirectory(_queryOptions.OutputDirectory);
             }
             if (!Directory.Exists(_queryOptions.ModelOutputDirectory))
             {
+                Reporter.WriteVerbose("Creating directory for models - " + _queryOptions.ModelOutputDirectory);
                 Directory.CreateDirectory(_queryOptions.ModelOutputDirectory);
             }
             GenerateModels();
@@ -81,7 +79,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 GenerateModel(new ClassModel()
                 {
                     Name = GetCustomInputModelName(model.MethodName),
-                    Properties = model.Parameters.Select(x => new PropertyModel() { Name = x.Name, CSharpType = x.Type, IsList = x.IsList }).ToList()
+                    Properties = model.Parameters.Select(x => new PropertyModel() { Name = x.Name, Type = x.Type, IsList = x.IsList }).ToList()
                 });
 
                 // generate output model
@@ -130,15 +128,13 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             GenerateMethods(serviceBuilder, methods);
             var servicePath = Path.Combine(_queryOptions.OutputDirectory, _queryOptions.FileName + "." + _language.FileExtension);
             File.WriteAllText(servicePath, serviceBuilder.ToString());
-
         }
-
 
 
         private MethodOperation GetSelectMethodOperation(ITable table, string MethodPrefix, bool isBatch)
         {
-            var outputModel = table.Columns.Select(x => CreateModelParameter(x, table.PrimaryKey.Columns)).ToList();
-            var primaryKeyProperties = table.PrimaryKey.Columns.Select(x => CreateModelParameter(x, table.PrimaryKey.Columns)).ToList();
+            var outputModel = table.Columns.Select(x => x.CreateModelParameter(table, _language, _relationalTypeMappingSource)).ToList();
+            var primaryKeyProperties = table.PrimaryKey.Columns.Select(x => x.CreateModelParameter(table, _language, _relationalTypeMappingSource)).ToList();
             var methodOp = new MethodOperation()
             {
                 MethodName = MethodPrefix + GetEntityName(table).Pascalize(),
@@ -149,16 +145,14 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 OutputModelName = GetOutputModelName(table),
                 OutputModel = outputModel,
                 IsBatchOperation = isBatch,
-                Table = table
+                Table = outputModel
             };
+            Reporter.WriteVerbose("Generating select method operation - " + JsonSerializer.Serialize(methodOp, new JsonSerializerOptions() { WriteIndented = true }));
             return methodOp;
         }
         protected MethodOperation GetInsertMethodOperation(ITable table, string MethodPrefix, bool isBatch)
         {
-            var tableMappings = table.GetMappings();
-            // var autoIncrementColumns = tableMappings.Where(x => x.isAutoIncrement()).Select(x => x.Name);
-            var outputModel = table.Columns.Select(x => CreateModelParameter(x, table.PrimaryKey.Columns)).ToList();
-            // var nonAutoIncrementColumn = table.Columns.Where(x => !autoIncrementColumns.Contains(x.Name)).Select(x => CreateModelParameter(x, false)).ToList();
+            var outputModel = table.Columns.Select(x => x.CreateModelParameter(table, _language, _relationalTypeMappingSource)).ToList();
             var methodOp = new MethodOperation()
             {
                 MethodName = MethodPrefix + GetEntityName(table).Pascalize(),
@@ -169,14 +163,15 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 OutputModelName = GetOutputModelName(table),
                 OutputModel = outputModel,
                 IsBatchOperation = isBatch,
-                Table = table
+                Table = outputModel
             };
+            Reporter.WriteVerbose("Generating insert method operation - " + JsonSerializer.Serialize(methodOp, new JsonSerializerOptions() { WriteIndented = true }));
             return methodOp;
         }
 
         protected MethodOperation GetUpdateMethodOperation(ITable table, string MethodPrefix, bool isBatch)
         {
-            var properties = table.Columns.Select(x => CreateModelParameter(x, table.PrimaryKey.Columns)).ToList();
+            var properties = table.Columns.Select(x => x.CreateModelParameter(table, _language, _relationalTypeMappingSource)).ToList();
             var methodOp = new MethodOperation()
             {
                 MethodName = MethodPrefix + GetEntityName(table).Pascalize(),
@@ -187,14 +182,15 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 OutputModelName = GetOutputModelName(table),
                 OutputModel = properties,
                 IsBatchOperation = isBatch,
-                Table = table
+                Table = properties
             };
+            Reporter.WriteVerbose("Generating update method operation - " + JsonSerializer.Serialize(methodOp, new JsonSerializerOptions() { WriteIndented = true }));
             return methodOp;
         }
 
         protected MethodOperation GetDeleteMethodOperation(ITable table, string MethodPrefix, bool isBatch)
         {
-            var primaryKeyProperties = table.PrimaryKey.Columns.Select(x => CreateModelParameter(x, table.PrimaryKey.Columns)).ToList();
+            var primaryKeyProperties = table.PrimaryKey.Columns.Select(x => x.CreateModelParameter(table, _language, _relationalTypeMappingSource)).ToList();
             var methodOp = new MethodOperation()
             {
                 MethodName = MethodPrefix + GetEntityName(table).Pascalize(),
@@ -204,13 +200,15 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 HasResult = false,
                 OutputModelName = GetOutputModelName(table),
                 IsBatchOperation = isBatch,
-                Table = table
+                Table = table.GetMappings(_language, _relationalTypeMappingSource)
             };
+            Reporter.WriteVerbose("Generating delete method operation - " + JsonSerializer.Serialize(methodOp, new JsonSerializerOptions() { WriteIndented = true }));
             return methodOp;
         }
 
         private MethodOperation GenerateCustomMethod(QueryModel sqlModel)
         {
+            Reporter.WriteVerbose("Generating custom method - " + sqlModel.MethodName);
             var inputPrameters1 = sqlModel.Bindings.Select(x => CreateModelParameter(x));
             // generate output model
             var outputParameter = sqlModel.Projections.Where(x => x.Table == null).Select(x => new ModelParameter()
@@ -218,8 +216,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 ColumnName = x.Name,
                 PropertyName = x.Name,
                 IsNullable = x.IsNullable,
-                Type = GetTypeName(x.Type),
-                IsvalueType = x.Type.IsValueType
+                Type = x.Type,
+                IsvalueType = x.IsValueType
 
             }).ToList();
             // nested class level properties
@@ -232,8 +230,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                     ColumnName = className + "." + x.Name,
                     PropertyName = className + "." + x.Name,
                     IsNullable = x.IsNullable,
-                    IsvalueType = x.Type.IsValueType,
-                    Type = GetTypeName(x.Type)
+                    IsvalueType = x.IsValueType,
+                    Type = x.Type
                 }).ToList();
                 outputParameter.AddRange(nestedOutputParameters);
             }
@@ -248,48 +246,20 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 HasResult = true,
                 OutputModelName = GetCustomOutputModelName(sqlModel.MethodName),
                 OutputModel = outputParameter,
-                IsBatchOperation = false
+                IsBatchOperation = false,
             };
+            Reporter.WriteVerbose("Generating custom method operation - " + JsonSerializer.Serialize(methodOp, new JsonSerializerOptions() { WriteIndented = true }));
             return methodOp;
         }
-
 
         private void GenerateModel(ClassModel classModel)
         {
             var builder = new IndentedStringBuilder();
+            string jsonString = JsonSerializer.Serialize(classModel, new JsonSerializerOptions { WriteIndented = true });
+            Reporter.WriteVerbose("Creating Model - " + jsonString);
             GenerateModel(builder, classModel);
             var modelPath = Path.Combine(_queryOptions.ModelOutputDirectory, classModel.Name + "." + _language.FileExtension);
             File.WriteAllText(modelPath, builder.ToString());
-        }
-
-
-        protected string GetTypeName(IProperty property)
-        {
-            // sometimes database may have different property
-            var clrType = GetType(property);
-            return GetTypeName(clrType);
-        }
-        protected Type GetType(IProperty property)
-        {
-            // sometimes database may have different property
-            var clrType = property.ClrType;
-            var relationalTypeMapping = _relationalTypeMappingSource.FindMapping(property);
-            if (relationalTypeMapping.DbType.HasValue)
-            {
-                clrType = SqlMapperHelper.getClrType(relationalTypeMapping.DbType.Value);
-            }
-            return clrType;
-        }
-
-        protected string GetTypeName(Type clrType)
-        {
-            var type = _language.Type[clrType];
-            if (type == null)
-            {
-                Reporter.WriteError("Type not found to create model - " + clrType);
-                throw new Exception("Type not found to create model - " + clrType);
-            }
-            return type;
         }
 
         private PropertyModel GetPropertyModel(IColumn column)
@@ -300,7 +270,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 Name = property.Name,
                 IsNullable = property.IsNullable,
                 IsValueType = property.ClrType.IsValueType,
-                CSharpType = GetType(property)
+                Type = property.GetDbTypeName(_language, _relationalTypeMappingSource)
             };
         }
 
@@ -310,21 +280,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             {
                 Name = sqlProjection.Name,
                 IsNullable = sqlProjection.IsNullable,
-                IsValueType = sqlProjection.Type.IsValueType,
-                CSharpType = sqlProjection.Type
-            };
-        }
-
-        private ModelParameter CreateModelParameter(IColumn column, IReadOnlyList<IColumn> primaryKeyColumns)
-        {
-            return new ModelParameter()
-            {
-                ColumnName = column.Name,
-                PropertyName = column.PropertyMappings.First().Property.Name,
-                Type = GetTypeName(column.PropertyMappings.First().Property),
-                IsNullable = column.PropertyMappings.First().Property.IsNullable,
-                IsPrimaryKey = primaryKeyColumns.Any(x => x.Name.Equals(column.Name)),
-                IsAutoIncrement = primaryKeyColumns.Any(x => x.Name.Equals(column.Name) && x.PropertyMappings.First().Property.ValueGenerated == ValueGenerated.OnAdd)
+                IsValueType = sqlProjection.IsValueType,
+                Type = sqlProjection.Type
             };
         }
 
@@ -335,7 +292,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 ColumnName = sqlBinding.Name,
                 PropertyName = sqlBinding.Value?.Name,
                 DefaultValue = sqlBinding.DefaultValue,
-                Type = sqlBinding.Value != null ? GetTypeName(sqlBinding.Value.Type) : null,
+                Type =  sqlBinding.Value?.Type,
                 IsListType = sqlBinding.Value != null ? sqlBinding.Value.IsList : false
             };
         }

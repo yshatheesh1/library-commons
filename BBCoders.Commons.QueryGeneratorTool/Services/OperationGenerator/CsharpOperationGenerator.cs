@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using System.Linq;
 using BBCoders.Commons.QueryGenerator;
 using BBCoders.Commons.QueryGeneratorTool.Models;
-using Humanizer;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using BBCoders.Commons.QueryGeneratorTool.Helpers;
 
 namespace BBCoders.Commons.QueryGeneratorTool.Services
 {
@@ -38,8 +38,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
 
                 foreach (var property in properties)
                 {
-                    var typeName = _language.Type[property.CSharpType];
-                    typeName = property.IsNullable && property.IsValueType ? typeName + "?" : typeName;
+                    var typeName = property.IsNullable && property.IsValueType ? property.Type + "?" : property.Type;
                     if (property.IsList)
                     {
                         typeName = "List<" + typeName + ">";
@@ -122,15 +121,14 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                 var inMappings = new List<string>();
                 foreach (var property in methodOperation.InputModel)
                 {
+                    var propertyName = property.PropertyName.GetJoinPlaceholder();
                     if (property.IsPrimaryKey && methodOperation.IsBatchOperation && (methodOperation.SqlType == SqlType.Select || methodOperation.SqlType == SqlType.Delete))
                     {
-                        var propertyName = $"{property.PropertyName.Pluralize()}Joined";
                         builder.AppendLine($"var {propertyName} = string.Join(\",\", {requestModelName}.Select((_, idx) => \"@{property.ColumnName}\" + idx));");
                         whereMappings.Add(propertyName);
                     }
                     if (property.IsListType)
                     {
-                        var propertyName = $"{property.PropertyName.Pluralize()}Joined";
                         builder.AppendLine($"var {propertyName} = string.Join(\",\", {requestModelName}?.{property.ColumnName}.Select((x, idx) => \"@{property.ColumnName}\" + idx));");
                         inMappings.Add(propertyName);
                     }
@@ -226,7 +224,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             }
             else
             {
-                var columnMappings = methodOperation.Table.PrimaryKey.Columns.Select(x => "@" + x.Name).ToArray();
+                var columnMappings = methodOperation.Table.Where(x => x.IsPrimaryKey).Select(x => "@" + x.ColumnName).ToArray();
                 if (methodOperation.SqlType == SqlType.Select)
                 {
                     _dependencies.SQLGenerator.Select(builder, methodOperation.Table, columnMappings, false);
@@ -272,7 +270,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
                     else
                     {
                         builder.Append("sqlBuilder.AppendLine($\"");
-                        var columnMappings = methodOperation.Table.PrimaryKey.Columns.Select(x => "@" + x.Name + "{i}").ToArray();
+                        var columnMappings = methodOperation.Table.Where(x => x.IsPrimaryKey).Select(x => "@" + x.ColumnName + "{i}").ToArray();
                         _dependencies.SQLGenerator.Select(builder, methodOperation.Table, columnMappings, false);
                         builder.AppendLine("\");");
                     }

@@ -146,7 +146,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests.Context
     [Table("Status")]
     [Index(nameof(StatusId), IsUnique = true)]
 
-    public class Status
+    public class Statuses
     {
         public long Id1 { get; set; }
 

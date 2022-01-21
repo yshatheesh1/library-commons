@@ -24,6 +24,6 @@ namespace BBCoders.Commons.QueryGeneratorTool.Models
         public bool IsNullable { get; set; }
         public bool IsValueType {get;set;}
         public bool IsList { get; set; }
-        public Type CSharpType { get; set; }
+        public string Type { get; set; }
     }
 }

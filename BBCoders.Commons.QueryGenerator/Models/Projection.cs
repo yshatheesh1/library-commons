@@ -1,6 +1,6 @@
 using System;
 
-namespace  BBCoders.Commons.QueryGenerator
+namespace BBCoders.Commons.QueryGenerator
 {
     /// <summary>
     /// Projection for select query
@@ -23,12 +23,17 @@ namespace  BBCoders.Commons.QueryGenerator
         /// type of the projection
         /// </summary>
         /// <value></value>
-        public Type Type { get; set; }
+        public string Type { get; set; }
         /// <summary>
         /// Check if type is nullable
         /// </summary>
         /// <value></value>
         public bool IsNullable { get; set; }
+        /// <summary>
+        /// check if its value or reference type
+        /// </summary>
+        /// <value></value>
+        public bool IsValueType { get; set; }
     }
 
 }

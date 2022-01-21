@@ -1,14 +1,15 @@
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
+using BBCoders.Commons.QueryGeneratorTool.Models;
+using System.Collections.Generic;
 
 namespace BBCoders.Commons.QueryGeneratorTool.Services.SqlGenerator
 {
     public interface ISQLGenerator
     {
-        void SelectLastInserted(IndentedStringBuilder builder, ITable table);
-        void Select(IndentedStringBuilder builder, ITable table, string[] whereMappings, bool isDynamic = false);
-        void Delete(IndentedStringBuilder builder, ITable table, string[] whereMappings, bool isDynamic = false);
-        void Insert(IndentedStringBuilder builder, ITable table, string[] insertValues);
-        void Update(IndentedStringBuilder builder, ITable table, string[] setMappings, string[] whereMappings);
+        void SelectLastInserted(IndentedStringBuilder builder, List<ModelParameter> table);
+        void Select(IndentedStringBuilder builder, List<ModelParameter> table, string[] whereMappings, bool isDynamic = false);
+        void Delete(IndentedStringBuilder builder, List<ModelParameter> table, string[] whereMappings, bool isDynamic = false);
+        void Insert(IndentedStringBuilder builder, List<ModelParameter> table, string[] insertValues);
+        void Update(IndentedStringBuilder builder, List<ModelParameter> table, string[] setMappings, string[] whereMappings);
     }
 }

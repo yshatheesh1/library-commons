@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Humanizer;
 
 namespace BBCoders.Commons.QueryGeneratorTool.Models
 {
@@ -32,8 +32,15 @@ namespace BBCoders.Commons.QueryGeneratorTool.Models
         public List<ModelParameter> InputModel { get; set; }
         public bool HasResult { get; set; }
         public string OutputModelName { get; set; }
+        /// <summary>
+        /// contains only output model properties
+        /// </summary>
+        /// <value></value>
         public List<ModelParameter> OutputModel { get; set; }
-        public ITable Table;
+        /// <summary>
+        /// contains all model properties
+        /// </summary>
+        public List<ModelParameter> Table;
         public string CustomSql { get; set; }
 
         public MethodOperation()
@@ -45,6 +52,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Models
 
     public class ModelParameter
     {
+        public string TableName { get; set; }
+        public string SchemaName { get; set; }
         public string ColumnName { get; set; }
         public string PropertyName { get; set; }
         public bool IsPrimaryKey { get; set; }

@@ -156,7 +156,7 @@ namespace BBCoders.Commons.Tools.IntegrationTests
         {
             public void CreateQuery(TestContext context, QueryContext queryOperations)
             {
-                queryOperations.Add<Status>();
+                queryOperations.Add<Statuses>();
             }
 
             public QueryOptions GetQueryOptions()

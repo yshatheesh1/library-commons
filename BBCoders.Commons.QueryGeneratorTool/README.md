@@ -6,3 +6,6 @@ Automation for ef core queries at design time
 
 # uninstall tool locally
 `dotnet tool uninstall BBCoders.Commons.QueryGeneratorTool —global`
+
+# publish tool to nuget
+`dotnet nuget push nupkg/**/*.nupkg --api-key {apiKey} --source https://api.nuget.org/v3/index.json  --skip-duplicate`

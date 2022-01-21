@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -23,7 +24,6 @@ using BBCoders.Commons.QueryGeneratorTool.Helpers;
 using Microsoft.EntityFrameworkCore.Design;
 using BBCoders.Commons.QueryGeneratorTool.Services.SqlGenerator;
 using System.Text.RegularExpressions;
-using Humanizer;
 
 namespace BBCoders.Commons.QueryGeneratorTool
 {
@@ -31,15 +31,15 @@ namespace BBCoders.Commons.QueryGeneratorTool
     {
         private readonly DesignTimeServicesBuilder _servicesBuilder;
         private readonly DbContextOperations _contextOperations;
-        private IRelationalModel _model;
         private ISqlGenerationHelper _sqlGenerationHelper;
         private IRelationalTypeMappingSource _relationalTypeMappingSource;
-        private IOperationReporter _reporter;
+        private MigrationsScaffolderDependencies _migrationsScaffolderDependencies;
         private DbContext _dbContext;
+        private Language _language;
         private List<QueryModel> _sqlModel;
         private List<ITable> _tables;
         private QueryOptions _queryOptions;
-        public DefaultQueryOperations([NotNull] Assembly assembly, [NotNull] Assembly startupAssembly, [NotNull] string projectDir, [NotNull] string rootNamespace, [NotNull] string[] designArgs) :
+        public DefaultQueryOperations([NotNull] Assembly assembly, [NotNull] Assembly startupAssembly, [NotNull] string projectDir, [NotNull] string rootNamespace, [NotNull] string[] designArgs = null) :
          base(assembly, startupAssembly, projectDir, rootNamespace, designArgs)
         {
             var handler = new OperationReportHandler(
@@ -47,9 +47,10 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     (Action<string>)Reporter.WriteWarning,
                     (Action<string>)Reporter.WriteInformation,
                     (Action<string>)Reporter.WriteVerbose);
-            _reporter = new OperationReporter(handler);
-            _contextOperations = new DbContextOperations(_reporter, assembly, startupAssembly, projectDir, rootNamespace, "C#", false, designArgs);
-            _servicesBuilder = new DesignTimeServicesBuilder(assembly, startupAssembly, _reporter, designArgs);
+            var operationReporter = new OperationReporter(handler);
+            Reporter.WriteVerbose("Initializing dependencies...");
+            _contextOperations = new DbContextOperations(operationReporter, assembly, startupAssembly, projectDir, rootNamespace, "C#", false, designArgs);
+            _servicesBuilder = new DesignTimeServicesBuilder(assembly, startupAssembly, operationReporter, designArgs);
         }
 
         /// <summary>
@@ -57,26 +58,26 @@ namespace BBCoders.Commons.QueryGeneratorTool
         /// </summary>
         public void Execute()
         {
-            _reporter.WriteInformation("Started generating source for queries");
-            var type = typeof(IQueryGenerator<>);
+            Reporter.WriteVerbose("Started generating source for queries...");
             var queryGenerators = GetQueryConfigurationTypes();
-            _reporter.WriteInformation($"Found {queryGenerators.Count()} query generators.");
+            Reporter.WriteVerbose($"Found {queryGenerators.Count()} query generators.");
             foreach (var queryGenerator in queryGenerators)
             {
-                var contextType = queryGenerator.GetInterfaces().First(x => x.IsGenericType &&
-                x.GetGenericTypeDefinition() == type.GetGenericTypeDefinition()).GetGenericArguments()
-                .First().Name;
-                _dbContext = _contextOperations.CreateContext(contextType);
+                var contextType = GetDbContextType(queryGenerator);
+                _dbContext = _contextOperations.CreateContext(contextType.Name);
                 var services = _servicesBuilder.Build(_dbContext);
                 using (var scope = services.CreateScope())
                 {
                     _relationalTypeMappingSource = scope.ServiceProvider.GetService<IRelationalTypeMappingSource>();
                     _sqlGenerationHelper = scope.ServiceProvider.GetService<ISqlGenerationHelper>();
-                    var migrationsScaffolderDependencies = scope.ServiceProvider.GetService<MigrationsScaffolderDependencies>();
-                    _model = migrationsScaffolderDependencies.Model.GetRelationalModel();
+                    _migrationsScaffolderDependencies = scope.ServiceProvider.GetService<MigrationsScaffolderDependencies>();
+                    // create instance of query configuration
                     var queryGeneratorInstance = Activator.CreateInstance(queryGenerator, new object[] { });
                     var queryConfigMethod = queryGenerator.GetMethod("GetQueryOptions");
                     _queryOptions = (QueryOptions)queryConfigMethod.Invoke(queryGeneratorInstance, new object[] { });
+                    _tables = new List<ITable>();
+                    _sqlModel = new List<QueryModel>();
+                    // validate query options
                     if (_queryOptions == null
                         || string.IsNullOrWhiteSpace(_queryOptions.ModelFileName)
                         || string.IsNullOrWhiteSpace(_queryOptions.ModelOutputDirectory)
@@ -88,12 +89,11 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     {
                         throw new ArgumentNullException(nameof(_queryOptions));
                     }
-                    // operationGenerators = new List<IOperationGenerator>();
-                    _tables = new List<ITable>();
-                    _sqlModel = new List<QueryModel>();
+                    var (language, codeGenerator) = GetLanguageGenerator();
+                    _language = language;
                     var createQuery = queryGenerator.GetMethod("CreateQuery");
                     createQuery.Invoke(queryGeneratorInstance, new object[] { _dbContext, this });
-                    GenerateCode();
+                    codeGenerator.Generate();
                 }
             }
         }
@@ -105,12 +105,11 @@ namespace BBCoders.Commons.QueryGeneratorTool
         /// <typeparam name="T"></typeparam>
         public override void Add<T>()
         {
-            var table = _model?.Tables.FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
+            var table = _migrationsScaffolderDependencies.Model.GetRelationalModel()?.Tables
+                .FirstOrDefault(x => x.EntityTypeMappings.First().EntityType.ClrType == typeof(T));
             if (table == null)
             {
-                var error = $"Table with given type not defined -{typeof(T)}. Please add this to DbContext if not added.";
-                Reporter.WriteError(error);
-                throw new Exception(error);
+                throw new Exception($"Table with given type not defined -{typeof(T)}. Please add this to DbContext if not added.");
             }
             _tables.Add(table);
         }
@@ -134,18 +133,21 @@ namespace BBCoders.Commons.QueryGeneratorTool
         /// <typeparam name="T"></typeparam>
         public override void Add<T>(string name, List<ParameterExpression> inputParameters, Expression<T> expression)
         {
+            Reporter.WriteVerbose("processing method - " + name);
             var customSqlModel = new QueryModel(name);
             var parameters = ParameterExpressionHelper.GetParameters(expression.Body.ToString(), inputParameters);
             var func = expression.Compile();
-            var bindingDefaultValues = parameters.Item2;
-            var bindingParameters = parameters.Item1.Values.ToArray();
+            var (bindingParameters, bindingDefaultValues) = parameters;
             var query = (IQueryable)func.GetType().GetMethod("Invoke").Invoke(func, bindingDefaultValues);
             if (query.Provider.Execute<IEnumerable>(query.Expression) is IRelationalQueryingEnumerable queryingEnumerable)
             {
+                // add projections
                 var projections = CreateProjections(queryingEnumerable);
                 customSqlModel.Projections.AddRange(projections);
+                // add sql
                 var command = queryingEnumerable.CreateDbCommand();
                 customSqlModel.Sql = command.CommandText.Replace("\n", "\n\t\t\t\t");
+                // add where equal bindings
                 var equalParameters = bindingParameters.Where(x => !x.InExpression).ToList();
                 for (var i = 0; i < command.Parameters.Count; i++)
                 {
@@ -178,6 +180,7 @@ namespace BBCoders.Commons.QueryGeneratorTool
                         });
                     }
                 }
+                // in bindings are special type, ef core doesn't create parameter because these are dynamic
                 Regex rgx = new Regex(@"\s*IN\s*\(.*?\)");
                 int index = 0;
                 foreach (var binding in bindingParameters.Where(x => x.InExpression))
@@ -193,11 +196,10 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     var match = rgx.Match(customSqlModel.Sql, index);
                     if (match.Success)
                     {
-                        var placeholder = binding.Expression.Name.Pluralize() + "Joined";
+                        var placeholder = inputParameter.Name.GetJoinPlaceholder();
                         var inClause = $" IN (\" + {placeholder} + @\")";
                         customSqlModel.Sql = customSqlModel.Sql.Replace(match.Value, inClause);
                         index = match.Index + inClause.Length;
-                        // inputParameter.ListPlaceholder = placeholder;
                     }
                     customSqlModel.Parameters.Add(inputParameter);
                     customSqlModel.Bindings.Add(new Binding()
@@ -207,39 +209,55 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     });
                 }
             }
+            string jsonString = JsonSerializer.Serialize(customSqlModel, new JsonSerializerOptions { WriteIndented = true });
+            Reporter.WriteVerbose("Sql Model: " + jsonString);
             _sqlModel.Add(customSqlModel);
         }
 
-        private Type GetDbType(Type type)
+        private String GetDbType(Type type)
         {
             var relationalTypeMapping = _relationalTypeMappingSource.GetMapping(type);
-            return GetDbType(relationalTypeMapping);
+            type = relationalTypeMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relationalTypeMapping.DbType.Value) :
+                relationalTypeMapping.ClrType;
+            return type.GetLanguageType(_language);
         }
 
-        private Type GetDbType(RelationalTypeMapping relationalTypeMapping)
+        private Type GetRelationalType(RelationalTypeMapping relationalTypeMapping)
         {
             var type = relationalTypeMapping.DbType.HasValue ? SqlMapperHelper.getClrType(relationalTypeMapping.DbType.Value) :
-                    relationalTypeMapping.ClrType;
+                relationalTypeMapping.ClrType;
             return type;
+        }
+
+        private String GetDbType(RelationalTypeMapping relationalTypeMapping)
+        {
+            var type = GetRelationalType(relationalTypeMapping);
+            return type.GetLanguageType(_language);
         }
 
         private List<Projection> CreateProjections(IRelationalQueryingEnumerable queryingEnumerable)
         {
+            Reporter.WriteVerbose("creating projections...");
             var projections = new List<Projection>();
             var constantPropertyIndex = 0;
             var selectExpression = GetSelectExpression(queryingEnumerable);
+            Reporter.WriteVerbose("Total projections found - " + selectExpression.Projection.Count());
             foreach (var projection in selectExpression.Projection)
             {
-                var type = GetDbType(projection.Expression.TypeMapping);
+                var type = GetRelationalType(projection.Expression.TypeMapping);
                 var sqlProjection = new Projection()
                 {
                     Name = projection.Alias,
-                    Type = type
+                    Type = type.Name,
+                    IsNullable = false,
+                    IsValueType = type.IsValueType
                 };
+                Reporter.WriteVerbose("projection : " + sqlProjection.Name);
                 // if no name is provided for custom sql 
                 if (string.IsNullOrEmpty(sqlProjection.Name))
                 {
                     sqlProjection.Name = $"Value_{constantPropertyIndex}";
+                    Reporter.WriteVerbose("projection has default value : " + sqlProjection.Name);
                     constantPropertyIndex++;
                 }
                 if (projection.Expression is ColumnExpression columnExpression)
@@ -249,11 +267,17 @@ namespace BBCoders.Commons.QueryGeneratorTool
                     {
                         sqlProjection.Name = projection.Alias;
                         sqlProjection.Table = tableExpression.Name;
+                        Reporter.WriteVerbose("project table : " + sqlProjection.Table);
                     }
-                    if (columnExpression.Table is JoinExpressionBase joinExpressionBase && joinExpressionBase.Table is TableExpression tableExpression2)
+                    else if (columnExpression.Table is JoinExpressionBase joinExpressionBase && joinExpressionBase.Table is TableExpression tableExpression2)
                     {
                         sqlProjection.Name = projection.Alias;
                         sqlProjection.Table = tableExpression2.Name;
+                        Reporter.WriteVerbose("project join table : " + sqlProjection.Table);
+                    }
+                    else
+                    {
+                        throw new Exception("projection type not defined...");
                     }
                 }
                 projections.Add(sqlProjection);
@@ -290,16 +314,26 @@ namespace BBCoders.Commons.QueryGeneratorTool
             return queryGenerators;
         }
 
-        private void GenerateCode()
+        private Type GetDbContextType(Type queryGenerator)
+        {
+            var type = typeof(IQueryGenerator<>);
+            var contextType = queryGenerator.GetInterfaces().First(x => x.IsGenericType &&
+                x.GetGenericTypeDefinition() == type.GetGenericTypeDefinition()).GetGenericArguments()
+                .First();
+            return contextType;
+        }
+
+
+        private (Language, IOperationGenerator) GetLanguageGenerator()
         {
             var dependencies = new SqlOperationGeneratorDependencies(new SQLGenerator(_sqlGenerationHelper), _relationalTypeMappingSource);
             if (_queryOptions.Language.Equals(Language.CSharp))
             {
-                new CsharpOperationGenerator(dependencies, _queryOptions, Language.CSharp, _tables, _sqlModel).Generate();
+                return (Language.CSharp, new CsharpOperationGenerator(dependencies, _queryOptions, Language.CSharp, _tables, _sqlModel));
             }
             else if (_queryOptions.Language.Equals(Language.Go))
             {
-                new GoOperationGenerator(dependencies, _queryOptions, Language.Go, _tables, _sqlModel).Generate();
+                return (Language.Go, new GoOperationGenerator(dependencies, _queryOptions, Language.Go, _tables, _sqlModel));
             }
             else
             {

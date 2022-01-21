@@ -357,8 +357,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
         {
             foreach (var property in classModel.Properties)
             {
-                var typeName = _language.Type[property.CSharpType];
-                if (typeName.Equals("time.Time"))
+                if (property.Type.Equals("time.Time"))
                 {
                     imports.Add("\"time\"");
                 }
@@ -427,9 +426,8 @@ namespace BBCoders.Commons.QueryGeneratorTool.Services
             {
                 foreach (var property in properties)
                 {
-                    var typeName = _language.Type[property.CSharpType];
                     var listType = property.IsList ? "[]" : "";
-                    builder.AppendLine($"{property.Name} {listType}{typeName}");
+                    builder.AppendLine($"{property.Name} {listType}{property.Type}");
                 }
                 foreach (var nestedModel in nestedClasses)
                 {

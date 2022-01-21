@@ -70,7 +70,7 @@ namespace  BBCoders.Commons.Utilities
         {
             if (IsVerbose)
             {
-                WriteLine(Prefix("verbose: ", Colorize(message, x => Bold + Black + x + Reset)));
+                WriteLine(Prefix("verbose: ", Colorize(message, x => Bold + Magenta + x + Reset)));
             }
         }
 

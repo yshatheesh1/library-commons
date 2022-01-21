@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Generates source files for queries</Description> 
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
     <TargetFramework>net6.0</TargetFramework>

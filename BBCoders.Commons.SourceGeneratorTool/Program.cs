@@ -11,9 +11,6 @@ namespace BBCoders.Commons.SourceGeneratorTool
     {
         private static int Main(string[] args)
         {
-            Reporter.IsVerbose = true;
-            Reporter.NoColor = false;
-            Reporter.PrefixOutput = false;
             var app = new CommandLineApplication(throwOnUnexpectedArg: false)
             {
                 Name = "Tool to generate source files",

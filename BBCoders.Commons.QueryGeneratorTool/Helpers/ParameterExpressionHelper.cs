@@ -1,5 +1,5 @@
 using System;
-using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
@@ -15,7 +15,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Helpers
     }
     public class ParameterExpressionHelper
     {
-        public static (SortedDictionary<int, BindingParameter>, object[]) GetParameters(String expression, List<ParameterExpression> parameters)
+        public static (BindingParameter[], object[]) GetParameters(String expression, List<ParameterExpression> parameters)
         {
             var sortedParameters = new SortedDictionary<int, BindingParameter>();
             var bindings = new object[parameters.Count];
@@ -38,7 +38,7 @@ namespace BBCoders.Commons.QueryGeneratorTool.Helpers
                 }
                 bindings[i] = bindingParameter.DefaultValue;
             }
-            return (sortedParameters, bindings);
+            return (sortedParameters.Values.ToArray(), bindings);
         }
 
         private static int IndexOf(string str, string value)

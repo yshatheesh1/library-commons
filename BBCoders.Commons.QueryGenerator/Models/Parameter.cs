@@ -17,7 +17,7 @@ namespace  BBCoders.Commons.QueryGenerator
         /// type of the parameter
         /// </summary>
         /// <value></value>
-        public Type Type { get; set; }
+        public string Type { get; set; }
         /// <summary>
         /// is input nullable
         /// </summary>

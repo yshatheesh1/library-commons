@@ -280,11 +280,11 @@ namespace BBCoders.Commons.Tools.IntegrationTests
             var transaction = respository.BeginTransaction();
             try
             {
-                var statuses = new List<StatuModel>(){
-                new StatuModel(){Id1 = 1, Id2 = 1,StatusId = Guid.NewGuid(), Description = "test1"},
-                new StatuModel() {Id1 = 2,Id2 = 2, StatusId = Guid.NewGuid(), Description = "test2"}};
+                var statuses = new List<StatusModel>(){
+                new StatusModel(){Id1 = 1, Id2 = 1,StatusId = Guid.NewGuid(), Description = "test1"},
+                new StatusModel() {Id1 = 2,Id2 = 2, StatusId = Guid.NewGuid(), Description = "test2"}};
 
-                var insertedRecords = await respository.InsertBatchStatus(statuses, transaction);
+                var insertedRecords = await respository.InsertBatchStatuses(statuses, transaction);
                 Assert.Equal(2, insertedRecords.Count);
                 Assert.NotNull(insertedRecords[0].Id1);
                 Assert.NotNull(insertedRecords[0].StatusId);
@@ -295,14 +295,14 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Assert.NotNull(insertedRecords[1].StatusId);
                 Assert.Equal("test2", insertedRecords[1].Description);
 
-                var selectRecords = await respository.SelectBatchStatus(new List<StatuKey>(){
-                new StatuKey() { Id1 = insertedRecords[0].Id1, Id2 = insertedRecords[0].Id2 },
-                new StatuKey() { Id1 = insertedRecords[1].Id1, Id2 = insertedRecords[1].Id2 }});
+                var selectRecords = await respository.SelectBatchStatuses(new List<StatusKey>(){
+                new StatusKey() { Id1 = insertedRecords[0].Id1, Id2 = insertedRecords[0].Id2 },
+                new StatusKey() { Id1 = insertedRecords[1].Id1, Id2 = insertedRecords[1].Id2 }});
                 Assert.Equal(2, selectRecords.Count);
                 Assert.Equal(insertedRecords[0].Id1, selectRecords[0].Id1);
                 Assert.Equal(insertedRecords[1].Id1, selectRecords[1].Id1);
 
-                var updatedRecords = await respository.UpdateBatchStatus(
+                var updatedRecords = await respository.UpdateBatchStatuses(
                     insertedRecords.Select(x => { x.Description = "new" + x.Description; return x; }).ToList(),
                     transaction);
 
@@ -310,29 +310,29 @@ namespace BBCoders.Commons.Tools.IntegrationTests
                 Assert.Equal("newtest1", updatedRecords[0].Description);
                 Assert.Equal("newtest2", updatedRecords[1].Description);
 
-                var deleteRecords = await respository.DeleteBatchStatus(new List<StatuKey>(){
-                new StatuKey() { Id1 = insertedRecords[0].Id1, Id2 = insertedRecords[0].Id2 },
-                new StatuKey() { Id1 = insertedRecords[1].Id1, Id2 = insertedRecords[1].Id2 }}, transaction);
+                var deleteRecords = await respository.DeleteBatchStatuses(new List<StatusKey>(){
+                new StatusKey() { Id1 = insertedRecords[0].Id1, Id2 = insertedRecords[0].Id2 },
+                new StatusKey() { Id1 = insertedRecords[1].Id1, Id2 = insertedRecords[1].Id2 }}, transaction);
                 Assert.Equal(2, deleteRecords);
 
                 // test non batch statements
-                var status = new StatuModel() { Id1 = 3, Id2 = 3, StatusId = Guid.NewGuid(), Description = "test3" };
-                var insertAnotherRecord = await respository.InsertStatus(status, transaction);
+                var status = new StatusModel() { Id1 = 3, Id2 = 3, StatusId = Guid.NewGuid(), Description = "test3" };
+                var insertAnotherRecord = await respository.InsertStatuses(status, transaction);
                 Assert.NotNull(insertAnotherRecord.Id1);
                 Assert.NotNull(insertAnotherRecord.StatusId);
                 Assert.Equal(3, insertAnotherRecord.Id2);
                 Assert.Equal("test3", insertAnotherRecord.Description);
 
-                var selectRecord = await respository.SelectStatus(new StatuKey() { Id1 = insertAnotherRecord.Id1, Id2 = insertAnotherRecord.Id2 });
+                var selectRecord = await respository.SelectStatuses(new StatusKey() { Id1 = insertAnotherRecord.Id1, Id2 = insertAnotherRecord.Id2 });
                 Assert.NotNull(selectRecord);
                 Assert.Equal(selectRecord.Id1, insertAnotherRecord.Id1);
                 Assert.Equal(selectRecord.Id2, insertAnotherRecord.Id2);
 
                 insertAnotherRecord.Description = "newtest3";
-                var updateRecord = await respository.UpdateStatus(insertAnotherRecord, transaction);
+                var updateRecord = await respository.UpdateStatuses(insertAnotherRecord, transaction);
                 Assert.Equal(updateRecord.Description, "newtest3");
 
-                var deleteRecord = await respository.DeleteStatus(new StatuKey() { Id1 = insertAnotherRecord.Id1, Id2 = insertAnotherRecord.Id2 }, transaction);
+                var deleteRecord = await respository.DeleteStatuses(new StatusKey() { Id1 = insertAnotherRecord.Id1, Id2 = insertAnotherRecord.Id2 }, transaction);
                 Assert.Equal(1, deleteRecord);
                 await transaction.CommitAsync();
             }

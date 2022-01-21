@@ -10,11 +10,13 @@ using System.Collections.Generic;
 
 namespace BBCoders.Example.DataModels
 {
-    public class StatuKey
+    public class StatusModel
     {
         public Int64 Id1 { get; set; }
         public Int64 Id2 { get; set; }
-        public StatuKey()
+        public String Description { get; set; }
+        public Guid StatusId { get; set; }
+        public StatusModel()
         {
         }
     }
